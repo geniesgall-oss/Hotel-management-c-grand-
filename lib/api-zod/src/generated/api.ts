@@ -7,9 +7,6 @@
  */
 import * as zod from "zod";
 
-/**
- * @summary Health check
- */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
@@ -56,6 +53,7 @@ export const GetRoomsResponseItem = zod.object({
       amountPaid: zod.number(),
       paymentMethod: zod.string(),
       dueAmount: zod.number(),
+      checkedInBy: zod.string(),
     })
     .nullish(),
 });
@@ -71,6 +69,7 @@ export const GetBookingsResponseItem = zod.object({
   amountPaid: zod.number(),
   paymentMethod: zod.string(),
   dueAmount: zod.number(),
+  checkedInBy: zod.string(),
 });
 export const GetBookingsResponse = zod.array(GetBookingsResponseItem);
 
@@ -81,6 +80,31 @@ export const CreateBookingBody = zod.object({
   roomAmount: zod.number(),
   amountPaid: zod.number(),
   paymentMethod: zod.string(),
+});
+
+export const UpdateBookingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBookingBody = zod.object({
+  guestName: zod.string(),
+  phone: zod.string(),
+  roomAmount: zod.number(),
+  amountPaid: zod.number(),
+  paymentMethod: zod.string(),
+});
+
+export const UpdateBookingResponse = zod.object({
+  id: zod.number(),
+  guestName: zod.string(),
+  phone: zod.string(),
+  roomNumber: zod.string(),
+  checkInTime: zod.string(),
+  roomAmount: zod.number(),
+  amountPaid: zod.number(),
+  paymentMethod: zod.string(),
+  dueAmount: zod.number(),
+  checkedInBy: zod.string(),
 });
 
 export const DeleteBookingParams = zod.object({
@@ -114,6 +138,8 @@ export const CheckoutBookingResponse = zod.object({
   dueAmountPaidAtCheckout: zod.number(),
   duePaymentMethodAtCheckout: zod.string(),
   totalPaid: zod.number(),
+  checkedInBy: zod.string(),
+  checkedOutBy: zod.string(),
 });
 
 export const GetHistoryResponseItem = zod.object({
@@ -129,6 +155,8 @@ export const GetHistoryResponseItem = zod.object({
   dueAmountPaidAtCheckout: zod.number(),
   duePaymentMethodAtCheckout: zod.string(),
   totalPaid: zod.number(),
+  checkedInBy: zod.string(),
+  checkedOutBy: zod.string(),
 });
 export const GetHistoryResponse = zod.array(GetHistoryResponseItem);
 

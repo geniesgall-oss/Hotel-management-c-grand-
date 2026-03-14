@@ -5,7 +5,6 @@ info:
   description: Hotel Management API
 servers:
   - url: /api
-    description: Base API path
 tags:
   - name: health
   - name: auth
@@ -17,7 +16,6 @@ paths:
     get:
       operationId: healthCheck
       tags: [health]
-      summary: Health check
       responses:
         "200":
           description: Healthy
@@ -131,6 +129,34 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /bookings/{id}:
+    put:
+      operationId: updateBooking
+      tags: [bookings]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBookingRequest"
+      responses:
+        "200":
+          description: Booking updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteBooking
       tags: [bookings]
@@ -316,7 +342,9 @@ components:
           type: string
         dueAmount:
           type: number
-      required: [id, guestName, phone, roomNumber, checkInTime, roomAmount, amountPaid, paymentMethod, dueAmount]
+        checkedInBy:
+          type: string
+      required: [id, guestName, phone, roomNumber, checkInTime, roomAmount, amountPaid, paymentMethod, dueAmount, checkedInBy]
 
     CreateBookingRequest:
       type: object
@@ -334,6 +362,21 @@ components:
         paymentMethod:
           type: string
       required: [guestName, phone, roomNumber, roomAmount, amountPaid, paymentMethod]
+
+    UpdateBookingRequest:
+      type: object
+      properties:
+        guestName:
+          type: string
+        phone:
+          type: string
+        roomAmount:
+          type: number
+        amountPaid:
+          type: number
+        paymentMethod:
+          type: string
+      required: [guestName, phone, roomAmount, amountPaid, paymentMethod]
 
     CheckoutRequest:
       type: object
@@ -371,4 +414,8 @@ components:
           type: string
         totalPaid:
           type: number
-      required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, amountPaidAtCheckin, paymentMethodAtCheckin, dueAmountPaidAtCheckout, duePaymentMethodAtCheckout, totalPaid]
+        checkedInBy:
+          type: string
+        checkedOutBy:
+          type: string
+      required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, amountPaidAtCheckin, paymentMethodAtCheckin, dueAmountPaidAtCheckout, duePaymentMethodAtCheckout, totalPaid, checkedInBy, checkedOutBy]

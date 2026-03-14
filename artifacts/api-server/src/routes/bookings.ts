@@ -4,30 +4,46 @@ import { getSession } from "./auth.js";
 
 const router = Router();
 
+type BookingRow = {
+  id: number;
+  guest_name: string;
+  phone: string;
+  room_number: string;
+  check_in_time: string;
+  room_amount: number;
+  amount_paid: number;
+  payment_method: string;
+  due_amount: number;
+  checked_in_by: string;
+};
+
+function toBooking(b: BookingRow) {
+  return {
+    id: b.id,
+    guestName: b.guest_name,
+    phone: b.phone,
+    roomNumber: b.room_number,
+    checkInTime: b.check_in_time,
+    roomAmount: b.room_amount,
+    amountPaid: b.amount_paid,
+    paymentMethod: b.payment_method,
+    dueAmount: b.due_amount,
+    checkedInBy: b.checked_in_by,
+  };
+}
+
 router.get("/bookings", (_req, res) => {
   const bookings = db.prepare(
-    "SELECT id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount FROM bookings ORDER BY check_in_time DESC"
-  ).all() as {
-    id: number; guest_name: string; phone: string; room_number: string; check_in_time: string;
-    room_amount: number; amount_paid: number; payment_method: string; due_amount: number;
-  }[];
-
-  return res.json(
-    bookings.map(b => ({
-      id: b.id,
-      guestName: b.guest_name,
-      phone: b.phone,
-      roomNumber: b.room_number,
-      checkInTime: b.check_in_time,
-      roomAmount: b.room_amount,
-      amountPaid: b.amount_paid,
-      paymentMethod: b.payment_method,
-      dueAmount: b.due_amount,
-    }))
-  );
+    "SELECT id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by FROM bookings ORDER BY check_in_time DESC"
+  ).all() as BookingRow[];
+  return res.json(bookings.map(toBooking));
 });
 
 router.post("/bookings", (req, res) => {
+  const authHeader = req.headers.authorization as string | undefined;
+  const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
+  if (!session) return res.status(401).json({ error: "Not authenticated" });
+
   const { guestName, phone, roomNumber, roomAmount, amountPaid, paymentMethod } = req.body as {
     guestName: string; phone: string; roomNumber: string;
     roomAmount: number; amountPaid: number; paymentMethod: string;
@@ -49,37 +65,55 @@ router.post("/bookings", (req, res) => {
 
   const result = db
     .prepare(
-      "INSERT INTO bookings (guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO bookings (guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
-    .run(guestName, phone, roomNumber, checkInTime, totalAmount, paid, paymentMethod || "Cash", due) as { lastInsertRowid: number };
+    .run(guestName, phone, roomNumber, checkInTime, totalAmount, paid, paymentMethod || "Cash", due, session.username) as { lastInsertRowid: number };
 
-  const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(result.lastInsertRowid) as {
-    id: number; guest_name: string; phone: string; room_number: string; check_in_time: string;
-    room_amount: number; amount_paid: number; payment_method: string; due_amount: number;
-  };
-
-  return res.status(201).json({
-    id: booking.id,
-    guestName: booking.guest_name,
-    phone: booking.phone,
-    roomNumber: booking.room_number,
-    checkInTime: booking.check_in_time,
-    roomAmount: booking.room_amount,
-    amountPaid: booking.amount_paid,
-    paymentMethod: booking.payment_method,
-    dueAmount: booking.due_amount,
-  });
+  const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(result.lastInsertRowid) as BookingRow;
+  return res.status(201).json(toBooking(booking));
 });
 
-router.delete("/bookings/:id", (req, res) => {
-  const authHeader = req.headers.authorization;
+// Admin: update booking (edit guest details / amounts)
+router.put("/bookings/:id", (req, res) => {
+  const authHeader = req.headers.authorization as string | undefined;
   const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
+  if (!session) return res.status(401).json({ error: "Not authenticated" });
+  if (session.role !== "admin") return res.status(403).json({ error: "Only admins can edit bookings" });
 
+  const id = parseInt(req.params.id, 10);
+  const existing = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
+  if (!existing) return res.status(404).json({ error: "Booking not found" });
+
+  const { guestName, phone, roomAmount, amountPaid, paymentMethod } = req.body as {
+    guestName: string; phone: string;
+    roomAmount: number; amountPaid: number; paymentMethod: string;
+  };
+
+  if (!guestName || !phone) {
+    return res.status(400).json({ error: "Guest name and phone are required" });
+  }
+
+  const totalAmount = Number(roomAmount) || 0;
+  const paid = Number(amountPaid) || 0;
+  const due = Math.max(0, totalAmount - paid);
+
+  db.prepare(
+    "UPDATE bookings SET guest_name=?, phone=?, room_amount=?, amount_paid=?, payment_method=?, due_amount=? WHERE id=?"
+  ).run(guestName, phone, totalAmount, paid, paymentMethod || "Cash", due, id);
+
+  const updated = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow;
+  return res.json(toBooking(updated));
+});
+
+// Admin: delete active booking
+router.delete("/bookings/:id", (req, res) => {
+  const authHeader = req.headers.authorization as string | undefined;
+  const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
   if (!session) return res.status(401).json({ error: "Not authenticated" });
   if (session.role !== "admin") return res.status(403).json({ error: "Only admins can delete bookings" });
 
   const id = parseInt(req.params.id, 10);
-  const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  const booking = db.prepare("SELECT id FROM bookings WHERE id = ?").get(id);
   if (!booking) return res.status(404).json({ error: "Booking not found" });
 
   db.prepare("DELETE FROM bookings WHERE id = ?").run(id);
@@ -87,43 +121,48 @@ router.delete("/bookings/:id", (req, res) => {
 });
 
 router.post("/bookings/:id/checkout", (req, res) => {
+  const authHeader = req.headers.authorization as string | undefined;
+  const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
+  if (!session) return res.status(401).json({ error: "Not authenticated" });
+
   const id = parseInt(req.params.id, 10);
   const { duePaymentMethod, dueAmountPaid } = req.body as { duePaymentMethod: string; dueAmountPaid: number };
 
-  const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id) as {
-    id: number; guest_name: string; phone: string; room_number: string; check_in_time: string;
-    room_amount: number; amount_paid: number; payment_method: string; due_amount: number;
-  } | undefined;
-
+  const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
   if (!booking) return res.status(404).json({ error: "Booking not found" });
 
   const checkOutTime = new Date().toISOString();
   const duePaid = Number(dueAmountPaid) || 0;
   const totalPaid = booking.amount_paid + duePaid;
 
+  type HistoryRow = {
+    id: number; guest_name: string; phone: string; room_number: string;
+    check_in_time: string; check_out_time: string; room_amount: number;
+    amount_paid_at_checkin: number; payment_method_at_checkin: string;
+    due_amount_paid_at_checkout: number; due_payment_method_at_checkout: string;
+    total_paid: number; checked_in_by: string; checked_out_by: string;
+  };
+
   const result = db
     .prepare(
-      `INSERT INTO history 
+      `INSERT INTO history
        (guest_name, phone, room_number, check_in_time, check_out_time,
         room_amount, amount_paid_at_checkin, payment_method_at_checkin,
-        due_amount_paid_at_checkout, due_payment_method_at_checkout, total_paid)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        due_amount_paid_at_checkout, due_payment_method_at_checkout, total_paid,
+        checked_in_by, checked_out_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       booking.guest_name, booking.phone, booking.room_number,
       booking.check_in_time, checkOutTime,
       booking.room_amount, booking.amount_paid, booking.payment_method,
-      duePaid, duePaymentMethod || "Cash", totalPaid
+      duePaid, duePaymentMethod || "Cash", totalPaid,
+      booking.checked_in_by, session.username
     ) as { lastInsertRowid: number };
 
   db.prepare("DELETE FROM bookings WHERE id = ?").run(id);
 
-  const record = db.prepare("SELECT * FROM history WHERE id = ?").get(result.lastInsertRowid) as {
-    id: number; guest_name: string; phone: string; room_number: string;
-    check_in_time: string; check_out_time: string; room_amount: number;
-    amount_paid_at_checkin: number; payment_method_at_checkin: string;
-    due_amount_paid_at_checkout: number; due_payment_method_at_checkout: string; total_paid: number;
-  };
+  const record = db.prepare("SELECT * FROM history WHERE id = ?").get(result.lastInsertRowid) as HistoryRow;
 
   return res.json({
     id: record.id,
@@ -138,6 +177,8 @@ router.post("/bookings/:id/checkout", (req, res) => {
     dueAmountPaidAtCheckout: record.due_amount_paid_at_checkout,
     duePaymentMethodAtCheckout: record.due_payment_method_at_checkout,
     totalPaid: record.total_paid,
+    checkedInBy: record.checked_in_by,
+    checkedOutBy: record.checked_out_by,
   });
 });
 

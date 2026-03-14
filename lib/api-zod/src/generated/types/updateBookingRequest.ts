@@ -6,15 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Booking {
-  id: number;
+export interface UpdateBookingRequest {
   guestName: string;
   phone: string;
-  roomNumber: string;
-  checkInTime: string;
   roomAmount: number;
   amountPaid: number;
   paymentMethod: string;
-  dueAmount: number;
-  checkedInBy: string;
 }

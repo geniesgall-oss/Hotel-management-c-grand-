@@ -4,6 +4,33 @@ import { getSession } from "./auth.js";
 
 const router = Router();
 
+type HistoryRow = {
+  id: number; guest_name: string; phone: string; room_number: string;
+  check_in_time: string; check_out_time: string; room_amount: number;
+  amount_paid_at_checkin: number; payment_method_at_checkin: string;
+  due_amount_paid_at_checkout: number; due_payment_method_at_checkout: string;
+  total_paid: number; checked_in_by: string; checked_out_by: string;
+};
+
+function toRecord(r: HistoryRow) {
+  return {
+    id: r.id,
+    guestName: r.guest_name,
+    phone: r.phone,
+    roomNumber: r.room_number,
+    checkInTime: r.check_in_time,
+    checkOutTime: r.check_out_time,
+    roomAmount: r.room_amount,
+    amountPaidAtCheckin: r.amount_paid_at_checkin,
+    paymentMethodAtCheckin: r.payment_method_at_checkin,
+    dueAmountPaidAtCheckout: r.due_amount_paid_at_checkout,
+    duePaymentMethodAtCheckout: r.due_payment_method_at_checkout,
+    totalPaid: r.total_paid,
+    checkedInBy: r.checked_in_by || "—",
+    checkedOutBy: r.checked_out_by || "—",
+  };
+}
+
 router.get("/history", (_req, res) => {
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
@@ -11,29 +38,9 @@ router.get("/history", (_req, res) => {
 
   const records = db
     .prepare("SELECT * FROM history WHERE check_out_time >= ? ORDER BY check_out_time DESC")
-    .all(cutoff) as {
-    id: number; guest_name: string; phone: string; room_number: string;
-    check_in_time: string; check_out_time: string; room_amount: number;
-    amount_paid_at_checkin: number; payment_method_at_checkin: string;
-    due_amount_paid_at_checkout: number; due_payment_method_at_checkout: string; total_paid: number;
-  }[];
+    .all(cutoff) as HistoryRow[];
 
-  return res.json(
-    records.map(r => ({
-      id: r.id,
-      guestName: r.guest_name,
-      phone: r.phone,
-      roomNumber: r.room_number,
-      checkInTime: r.check_in_time,
-      checkOutTime: r.check_out_time,
-      roomAmount: r.room_amount,
-      amountPaidAtCheckin: r.amount_paid_at_checkin,
-      paymentMethodAtCheckin: r.payment_method_at_checkin,
-      dueAmountPaidAtCheckout: r.due_amount_paid_at_checkout,
-      duePaymentMethodAtCheckout: r.due_payment_method_at_checkout,
-      totalPaid: r.total_paid,
-    }))
-  );
+  return res.json(records.map(toRecord));
 });
 
 router.delete("/history/:id", (req, res) => {

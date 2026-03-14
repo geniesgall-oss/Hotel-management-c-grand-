@@ -19,4 +19,6 @@ export interface HistoryRecord {
   dueAmountPaidAtCheckout: number;
   duePaymentMethodAtCheckout: string;
   totalPaid: number;
+  checkedInBy: string;
+  checkedOutBy: string;
 }

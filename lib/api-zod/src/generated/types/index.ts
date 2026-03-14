@@ -17,5 +17,6 @@ export * from "./loginResponse";
 export * from "./room";
 export * from "./roomStatus";
 export * from "./successResponse";
+export * from "./updateBookingRequest";
 export * from "./user";
 export * from "./userRole";

@@ -1,11 +1,91 @@
-import { useGetRooms } from "@workspace/api-client-react"
+import { useState } from "react"
+import { useGetRooms, useUpdateBooking, useDeleteBooking } from "@workspace/api-client-react"
+import type { Booking } from "@workspace/api-client-react/src/generated/api.schemas"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { DoorOpen, User, Phone, CalendarClock, IndianRupee, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useQueryClient } from "@tanstack/react-query"
+import { useAuth } from "@/hooks/use-auth"
+import { toast } from "sonner"
+import {
+  DoorOpen, User, Phone, CalendarClock, IndianRupee, AlertCircle,
+  Pencil, Trash2, X, Check, CreditCard,
+} from "lucide-react"
 import { format } from "date-fns"
 
+const PAYMENT_METHODS = ["Cash", "PhonePe", "GPay", "Card"] as const
+
 export default function Dashboard() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const { data: rooms, isLoading, error } = useGetRooms()
+  const updateBooking = useUpdateBooking()
+  const deleteBooking = useDeleteBooking()
+  const isAdmin = user?.role === "admin"
+
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<Booking | null>(null)
+
+  // Edit form state
+  const [editName, setEditName] = useState("")
+  const [editPhone, setEditPhone] = useState("")
+  const [editRoomAmount, setEditRoomAmount] = useState("")
+  const [editAmountPaid, setEditAmountPaid] = useState("")
+  const [editPaymentMethod, setEditPaymentMethod] = useState("Cash")
+
+  const openEdit = (booking: Booking) => {
+    setEditingBooking(booking)
+    setEditName(booking.guestName)
+    // Strip +91 prefix for display
+    setEditPhone(booking.phone.replace(/^\+91/, ""))
+    setEditRoomAmount(String(booking.roomAmount))
+    setEditAmountPaid(String(booking.amountPaid))
+    setEditPaymentMethod(booking.paymentMethod)
+  }
+
+  const closeEdit = () => setEditingBooking(null)
+
+  const handleSaveEdit = async () => {
+    if (!editingBooking) return
+    const roomAmount = Number(editRoomAmount) || 0
+    const amountPaid = Math.min(Number(editAmountPaid) || 0, roomAmount)
+    const phoneDigits = editPhone.replace(/\D/g, "")
+    if (!editName.trim() || phoneDigits.length !== 10) {
+      toast.error("Enter a valid guest name and 10-digit phone number")
+      return
+    }
+    try {
+      await updateBooking.mutateAsync({
+        id: editingBooking.id,
+        data: {
+          guestName: editName.trim(),
+          phone: `+91${phoneDigits}`,
+          roomAmount,
+          amountPaid,
+          paymentMethod: editPaymentMethod,
+        },
+      })
+      toast.success("Booking updated")
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
+      closeEdit()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update booking")
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return
+    try {
+      await deleteBooking.mutateAsync({ id: deleteConfirm.id })
+      toast.success(`Booking for ${deleteConfirm.guestName} deleted`)
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
+      setDeleteConfirm(null)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete booking")
+    }
+  }
 
   if (isLoading) {
     return (
@@ -34,6 +114,7 @@ export default function Dashboard() {
 
   const availableCount = rooms?.filter(r => r.status === "available").length || 0
   const occupiedCount = rooms?.filter(r => r.status === "occupied").length || 0
+  const editDue = Math.max(0, (Number(editRoomAmount) || 0) - (Number(editAmountPaid) || 0))
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -69,7 +150,6 @@ export default function Dashboard() {
                   : "border-success/20 hover:border-success/40 bg-card"
               }`}
             >
-              {/* Glow */}
               <div className={`absolute top-0 right-0 w-28 h-28 blur-3xl -z-0 rounded-full opacity-10 group-hover:opacity-20 transition-opacity duration-500 ${
                 isOccupied ? "bg-destructive" : "bg-success"
               }`} />
@@ -80,15 +160,35 @@ export default function Dashboard() {
                     <DoorOpen className={`h-5 w-5 ${isOccupied ? "text-destructive" : "text-success"}`} />
                     {room.number}
                   </CardTitle>
-                  <Badge
-                    className={`text-xs font-semibold border ${
-                      isOccupied
-                        ? "bg-destructive/15 text-destructive border-destructive/30"
-                        : "bg-success/15 text-success border-success/30"
-                    }`}
-                  >
-                    {isOccupied ? "Occupied" : "Available"}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    {isAdmin && isOccupied && booking && (
+                      <>
+                        <button
+                          onClick={() => openEdit(booking)}
+                          className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                          title="Edit booking"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(booking)}
+                          className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          title="Delete booking"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                    <Badge
+                      className={`text-xs font-semibold border ${
+                        isOccupied
+                          ? "bg-destructive/15 text-destructive border-destructive/30"
+                          : "bg-success/15 text-success border-success/30"
+                      }`}
+                    >
+                      {isOccupied ? "Occupied" : "Available"}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
 
@@ -137,6 +237,156 @@ export default function Dashboard() {
           )
         })}
       </div>
+
+      {/* ── Edit Booking Modal ── */}
+      {editingBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeEdit} />
+          <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-display font-bold text-foreground">
+                Edit Booking — {editingBooking.roomNumber}
+              </h2>
+              <button onClick={closeEdit} className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Guest Name</label>
+                <input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="flex h-11 w-full rounded-xl border border-border bg-input/50 px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Guest full name"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Mobile Number</label>
+                <div className="flex">
+                  <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-secondary text-muted-foreground text-sm font-medium select-none">
+                    +91
+                  </span>
+                  <input
+                    value={editPhone}
+                    onChange={e => setEditPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    maxLength={10}
+                    type="tel"
+                    className="flex h-11 w-full rounded-r-xl border border-border bg-input/50 px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    placeholder="9876543210"
+                  />
+                </div>
+              </div>
+
+              {/* Amounts */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Room Amount (₹)</label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={editRoomAmount}
+                      onChange={e => setEditRoomAmount(e.target.value)}
+                      className="flex h-11 w-full rounded-xl border border-border bg-input/50 pl-9 pr-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Paid at Check-In (₹)</label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={editAmountPaid}
+                      onChange={e => setEditAmountPaid(e.target.value)}
+                      className="flex h-11 w-full rounded-xl border border-border bg-input/50 pl-9 pr-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Due display */}
+              <div className={`flex items-center justify-between rounded-xl px-4 py-2.5 border text-sm font-semibold ${
+                editDue > 0
+                  ? "bg-destructive/10 border-destructive/30 text-destructive"
+                  : "bg-success/10 border-success/30 text-success"
+              }`}>
+                <span>{editDue > 0 ? "Due Remaining" : "Fully Paid"}</span>
+                <span>₹{editDue.toLocaleString("en-IN")}</span>
+              </div>
+
+              {/* Payment method */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Payment Method (Check-In)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {PAYMENT_METHODS.map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setEditPaymentMethod(m)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                        editPaymentMethod === m
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={closeEdit}>Cancel</Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveEdit}
+                isLoading={updateBooking.isPending}
+              >
+                <Check className="h-4 w-4 mr-1.5" />
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
+          <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="text-xl font-display font-bold text-foreground">Delete Active Booking</h2>
+            <p className="text-sm text-muted-foreground">
+              Delete booking for <span className="font-semibold text-foreground">{deleteConfirm.guestName}</span> in room <span className="font-semibold text-foreground">{deleteConfirm.roomNumber}</span>?
+              This will free up the room immediately. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleDelete}
+                isLoading={deleteBooking.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
