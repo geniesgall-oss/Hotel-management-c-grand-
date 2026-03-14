@@ -18,6 +18,7 @@ import type {
 
 import type {
   Booking,
+  CheckoutRequest,
   CreateBookingRequest,
   ErrorResponse,
   HealthStatus,
@@ -113,9 +114,6 @@ export function useHealthCheck<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Login
- */
 export const getLoginUrl = () => {
   return `/api/auth/login`;
 };
@@ -176,9 +174,6 @@ export type LoginMutationResult = NonNullable<
 export type LoginMutationBody = BodyType<LoginRequest>;
 export type LoginMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Login
- */
 export const useLogin = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -199,9 +194,6 @@ export const useLogin = <
   return useMutation(getLoginMutationOptions(options));
 };
 
-/**
- * @summary Logout
- */
 export const getLogoutUrl = () => {
   return `/api/auth/logout`;
 };
@@ -257,9 +249,6 @@ export type LogoutMutationResult = NonNullable<
 
 export type LogoutMutationError = ErrorType<unknown>;
 
-/**
- * @summary Logout
- */
 export const useLogout = <
   TError = ErrorType<unknown>,
   TContext = unknown,
@@ -280,9 +269,6 @@ export const useLogout = <
   return useMutation(getLogoutMutationOptions(options));
 };
 
-/**
- * @summary Get current user
- */
 export const getGetMeUrl = () => {
   return `/api/auth/me`;
 };
@@ -323,10 +309,6 @@ export const getGetMeQueryOptions = <
 export type GetMeQueryResult = NonNullable<Awaited<ReturnType<typeof getMe>>>;
 export type GetMeQueryError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Get current user
- */
-
 export function useGetMe<
   TData = Awaited<ReturnType<typeof getMe>>,
   TError = ErrorType<ErrorResponse>,
@@ -343,9 +325,6 @@ export function useGetMe<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Get all rooms with status
- */
 export const getGetRoomsUrl = () => {
   return `/api/rooms`;
 };
@@ -388,10 +367,6 @@ export type GetRoomsQueryResult = NonNullable<
 >;
 export type GetRoomsQueryError = ErrorType<unknown>;
 
-/**
- * @summary Get all rooms with status
- */
-
 export function useGetRooms<
   TData = Awaited<ReturnType<typeof getRooms>>,
   TError = ErrorType<unknown>,
@@ -408,9 +383,6 @@ export function useGetRooms<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Get active bookings
- */
 export const getGetBookingsUrl = () => {
   return `/api/bookings`;
 };
@@ -459,10 +431,6 @@ export type GetBookingsQueryResult = NonNullable<
 >;
 export type GetBookingsQueryError = ErrorType<unknown>;
 
-/**
- * @summary Get active bookings
- */
-
 export function useGetBookings<
   TData = Awaited<ReturnType<typeof getBookings>>,
   TError = ErrorType<unknown>,
@@ -483,9 +451,6 @@ export function useGetBookings<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Check in a guest
- */
 export const getCreateBookingUrl = () => {
   return `/api/bookings`;
 };
@@ -546,9 +511,6 @@ export type CreateBookingMutationResult = NonNullable<
 export type CreateBookingMutationBody = BodyType<CreateBookingRequest>;
 export type CreateBookingMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Check in a guest
- */
 export const useCreateBooking = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -569,9 +531,6 @@ export const useCreateBooking = <
   return useMutation(getCreateBookingMutationOptions(options));
 };
 
-/**
- * @summary Delete a booking (admin only)
- */
 export const getDeleteBookingUrl = (id: number) => {
   return `/api/bookings/${id}`;
 };
@@ -630,9 +589,6 @@ export type DeleteBookingMutationResult = NonNullable<
 
 export type DeleteBookingMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Delete a booking (admin only)
- */
 export const useDeleteBooking = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -653,20 +609,20 @@ export const useDeleteBooking = <
   return useMutation(getDeleteBookingMutationOptions(options));
 };
 
-/**
- * @summary Check out a guest
- */
 export const getCheckoutBookingUrl = (id: number) => {
   return `/api/bookings/${id}/checkout`;
 };
 
 export const checkoutBooking = async (
   id: number,
+  checkoutRequest: CheckoutRequest,
   options?: RequestInit,
 ): Promise<HistoryRecord> => {
   return customFetch<HistoryRecord>(getCheckoutBookingUrl(id), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(checkoutRequest),
   });
 };
 
@@ -677,14 +633,14 @@ export const getCheckoutBookingMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof checkoutBooking>>,
     TError,
-    { id: number },
+    { id: number; data: BodyType<CheckoutRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof checkoutBooking>>,
   TError,
-  { id: number },
+  { id: number; data: BodyType<CheckoutRequest> },
   TContext
 > => {
   const mutationKey = ["checkoutBooking"];
@@ -698,11 +654,11 @@ export const getCheckoutBookingMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof checkoutBooking>>,
-    { id: number }
+    { id: number; data: BodyType<CheckoutRequest> }
   > = (props) => {
-    const { id } = props ?? {};
+    const { id, data } = props ?? {};
 
-    return checkoutBooking(id, requestOptions);
+    return checkoutBooking(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -711,12 +667,9 @@ export const getCheckoutBookingMutationOptions = <
 export type CheckoutBookingMutationResult = NonNullable<
   Awaited<ReturnType<typeof checkoutBooking>>
 >;
-
+export type CheckoutBookingMutationBody = BodyType<CheckoutRequest>;
 export type CheckoutBookingMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Check out a guest
- */
 export const useCheckoutBooking = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -724,22 +677,19 @@ export const useCheckoutBooking = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof checkoutBooking>>,
     TError,
-    { id: number },
+    { id: number; data: BodyType<CheckoutRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof checkoutBooking>>,
   TError,
-  { id: number },
+  { id: number; data: BodyType<CheckoutRequest> },
   TContext
 > => {
   return useMutation(getCheckoutBookingMutationOptions(options));
 };
 
-/**
- * @summary Get checkout history (last 2 months)
- */
 export const getGetHistoryUrl = () => {
   return `/api/history`;
 };
@@ -788,10 +738,6 @@ export type GetHistoryQueryResult = NonNullable<
 >;
 export type GetHistoryQueryError = ErrorType<unknown>;
 
-/**
- * @summary Get checkout history (last 2 months)
- */
-
 export function useGetHistory<
   TData = Awaited<ReturnType<typeof getHistory>>,
   TError = ErrorType<unknown>,
@@ -812,9 +758,6 @@ export function useGetHistory<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Delete a history record (admin only)
- */
 export const getDeleteHistoryUrl = (id: number) => {
   return `/api/history/${id}`;
 };
@@ -873,9 +816,6 @@ export type DeleteHistoryMutationResult = NonNullable<
 
 export type DeleteHistoryMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Delete a history record (admin only)
- */
 export const useDeleteHistory = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,

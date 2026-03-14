@@ -10,4 +10,7 @@ export interface CreateBookingRequest {
   guestName: string;
   phone: string;
   roomNumber: string;
+  roomAmount: number;
+  amountPaid: number;
+  paymentMethod: string;
 }

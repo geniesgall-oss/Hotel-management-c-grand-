@@ -14,9 +14,6 @@ export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
 
-/**
- * @summary Login
- */
 export const LoginBody = zod.object({
   username: zod.string(),
   password: zod.string(),
@@ -32,17 +29,11 @@ export const LoginResponse = zod.object({
   }),
 });
 
-/**
- * @summary Logout
- */
 export const LogoutResponse = zod.object({
   success: zod.boolean(),
   message: zod.string().optional(),
 });
 
-/**
- * @summary Get current user
- */
 export const GetMeResponse = zod.object({
   id: zod.number(),
   username: zod.string(),
@@ -50,9 +41,6 @@ export const GetMeResponse = zod.object({
   email: zod.string().nullish(),
 });
 
-/**
- * @summary Get all rooms with status
- */
 export const GetRoomsResponseItem = zod.object({
   id: zod.number(),
   number: zod.string(),
@@ -64,35 +52,37 @@ export const GetRoomsResponseItem = zod.object({
       phone: zod.string(),
       roomNumber: zod.string(),
       checkInTime: zod.string(),
+      roomAmount: zod.number(),
+      amountPaid: zod.number(),
+      paymentMethod: zod.string(),
+      dueAmount: zod.number(),
     })
     .nullish(),
 });
 export const GetRoomsResponse = zod.array(GetRoomsResponseItem);
 
-/**
- * @summary Get active bookings
- */
 export const GetBookingsResponseItem = zod.object({
   id: zod.number(),
   guestName: zod.string(),
   phone: zod.string(),
   roomNumber: zod.string(),
   checkInTime: zod.string(),
+  roomAmount: zod.number(),
+  amountPaid: zod.number(),
+  paymentMethod: zod.string(),
+  dueAmount: zod.number(),
 });
 export const GetBookingsResponse = zod.array(GetBookingsResponseItem);
 
-/**
- * @summary Check in a guest
- */
 export const CreateBookingBody = zod.object({
   guestName: zod.string(),
   phone: zod.string(),
   roomNumber: zod.string(),
+  roomAmount: zod.number(),
+  amountPaid: zod.number(),
+  paymentMethod: zod.string(),
 });
 
-/**
- * @summary Delete a booking (admin only)
- */
 export const DeleteBookingParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -102,11 +92,13 @@ export const DeleteBookingResponse = zod.object({
   message: zod.string().optional(),
 });
 
-/**
- * @summary Check out a guest
- */
 export const CheckoutBookingParams = zod.object({
   id: zod.coerce.number(),
+});
+
+export const CheckoutBookingBody = zod.object({
+  duePaymentMethod: zod.string(),
+  dueAmountPaid: zod.number(),
 });
 
 export const CheckoutBookingResponse = zod.object({
@@ -116,11 +108,14 @@ export const CheckoutBookingResponse = zod.object({
   roomNumber: zod.string(),
   checkInTime: zod.string(),
   checkOutTime: zod.string(),
+  roomAmount: zod.number(),
+  amountPaidAtCheckin: zod.number(),
+  paymentMethodAtCheckin: zod.string(),
+  dueAmountPaidAtCheckout: zod.number(),
+  duePaymentMethodAtCheckout: zod.string(),
+  totalPaid: zod.number(),
 });
 
-/**
- * @summary Get checkout history (last 2 months)
- */
 export const GetHistoryResponseItem = zod.object({
   id: zod.number(),
   guestName: zod.string(),
@@ -128,12 +123,15 @@ export const GetHistoryResponseItem = zod.object({
   roomNumber: zod.string(),
   checkInTime: zod.string(),
   checkOutTime: zod.string(),
+  roomAmount: zod.number(),
+  amountPaidAtCheckin: zod.number(),
+  paymentMethodAtCheckin: zod.string(),
+  dueAmountPaidAtCheckout: zod.number(),
+  duePaymentMethodAtCheckout: zod.string(),
+  totalPaid: zod.number(),
 });
 export const GetHistoryResponse = zod.array(GetHistoryResponseItem);
 
-/**
- * @summary Delete a history record (admin only)
- */
 export const DeleteHistoryParams = zod.object({
   id: zod.coerce.number(),
 });

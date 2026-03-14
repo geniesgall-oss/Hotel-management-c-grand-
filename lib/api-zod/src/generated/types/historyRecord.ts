@@ -13,4 +13,10 @@ export interface HistoryRecord {
   roomNumber: string;
   checkInTime: string;
   checkOutTime: string;
+  roomAmount: number;
+  amountPaidAtCheckin: number;
+  paymentMethodAtCheckin: string;
+  dueAmountPaidAtCheckout: number;
+  duePaymentMethodAtCheckout: string;
+  totalPaid: number;
 }

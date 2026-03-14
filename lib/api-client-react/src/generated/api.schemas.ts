@@ -55,6 +55,10 @@ export interface Booking {
   phone: string;
   roomNumber: string;
   checkInTime: string;
+  roomAmount: number;
+  amountPaid: number;
+  paymentMethod: string;
+  dueAmount: number;
 }
 
 export interface Room {
@@ -68,6 +72,14 @@ export interface CreateBookingRequest {
   guestName: string;
   phone: string;
   roomNumber: string;
+  roomAmount: number;
+  amountPaid: number;
+  paymentMethod: string;
+}
+
+export interface CheckoutRequest {
+  duePaymentMethod: string;
+  dueAmountPaid: number;
 }
 
 export interface HistoryRecord {
@@ -77,4 +89,10 @@ export interface HistoryRecord {
   roomNumber: string;
   checkInTime: string;
   checkOutTime: string;
+  roomAmount: number;
+  amountPaidAtCheckin: number;
+  paymentMethodAtCheckin: string;
+  dueAmountPaidAtCheckout: number;
+  duePaymentMethodAtCheckout: string;
+  totalPaid: number;
 }

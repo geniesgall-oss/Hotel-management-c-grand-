@@ -9,12 +9,26 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { UserPlus, Clock } from "lucide-react"
+import { UserPlus, Clock, IndianRupee, CreditCard } from "lucide-react"
+
+const PAYMENT_METHODS = ["Cash", "PhonePe", "GPay", "Card"] as const
 
 const checkInSchema = z.object({
-  guestName: z.string().min(2, "Guest name is required"),
-  phone: z.string().min(5, "Valid phone number is required"),
+  guestName: z.string().min(2, "Guest name must be at least 2 characters"),
+  phone: z
+    .string()
+    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
   roomNumber: z.string().min(1, "Please select a room"),
+  roomAmount: z
+    .number({ invalid_type_error: "Enter a valid amount" })
+    .min(1, "Room amount must be greater than 0"),
+  amountPaid: z
+    .number({ invalid_type_error: "Enter a valid amount" })
+    .min(0, "Amount paid cannot be negative"),
+  paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: "Select a payment method" }) }),
+}).refine(d => d.amountPaid <= d.roomAmount, {
+  message: "Amount paid cannot exceed room amount",
+  path: ["amountPaid"],
 })
 
 type CheckInForm = z.infer<typeof checkInSchema>
@@ -23,101 +37,199 @@ export default function CheckIn() {
   const queryClient = useQueryClient()
   const { data: rooms } = useGetRooms()
   const createBooking = useCreateBooking()
-  
   const [currentTime, setCurrentTime] = useState(new Date())
-  
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CheckInForm>({
-    resolver: zodResolver(checkInSchema)
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<CheckInForm>({
+    resolver: zodResolver(checkInSchema),
+    defaultValues: { paymentMethod: "Cash", amountPaid: 0 },
   })
 
-  const availableRooms = rooms?.filter(r => r.status === 'available') || []
+  const roomAmount = watch("roomAmount") || 0
+  const amountPaid = watch("amountPaid") || 0
+  const dueAmount = Math.max(0, Number(roomAmount) - Number(amountPaid))
+
+  const availableRooms = rooms?.filter(r => r.status === "available") || []
 
   const onSubmit = async (data: CheckInForm) => {
     try {
-      await createBooking.mutateAsync({ data })
-      toast.success(`${data.guestName} checked into ${data.roomNumber} successfully!`)
+      await createBooking.mutateAsync({ data: { ...data, phone: `+91${data.phone}` } })
+      toast.success(`${data.guestName} checked into ${data.roomNumber}!`)
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
-      reset()
+      reset({ paymentMethod: "Cash", amountPaid: 0 })
     } catch (error: any) {
       toast.error(error.message || "Failed to check in")
     }
   }
 
+  const inputCls = (hasError?: boolean) =>
+    `flex h-11 w-full rounded-xl border bg-input/50 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all ${hasError ? "border-destructive" : "border-border"}`
+
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <div>
         <h1 className="text-3xl font-display font-bold text-foreground">New Check-In</h1>
-        <p className="text-muted-foreground mt-1">Register a new guest to an available room.</p>
+        <p className="text-muted-foreground mt-1">Register a new guest and record their payment.</p>
       </div>
 
-      <Card className="border-t-4 border-t-primary shadow-xl">
-        <CardHeader className="bg-secondary/30 pb-8 border-b border-border">
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-6 w-6 text-primary" />
-            Guest Details
+      <Card className="border border-border/70 shadow-2xl shadow-black/30">
+        <CardHeader className="bg-secondary/40 pb-6 border-b border-border/60">
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <UserPlus className="h-5 w-5 text-primary" />
+            Guest & Payment Details
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
+            {/* Name + Phone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
                 <Label htmlFor="guestName">Guest Full Name</Label>
                 <Input
                   id="guestName"
-                  placeholder="John Doe"
+                  placeholder="e.g. Ramesh Kumar"
                   {...register("guestName")}
                   className={errors.guestName ? "border-destructive" : ""}
                 />
-                {errors.guestName && <p className="text-sm text-destructive">{errors.guestName.message}</p>}
+                {errors.guestName && <p className="text-xs text-destructive">{errors.guestName.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  placeholder="+1 (555) 000-0000"
-                  {...register("phone")}
-                  className={errors.phone ? "border-destructive" : ""}
-                />
-                {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="phone">Mobile Number (India)</Label>
+                <div className="flex">
+                  <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-secondary text-muted-foreground text-sm font-medium select-none">
+                    +91
+                  </span>
+                  <input
+                    id="phone"
+                    type="tel"
+                    maxLength={10}
+                    placeholder="9876543210"
+                    {...register("phone")}
+                    className={`${inputCls(!!errors.phone)} rounded-l-none border-l-0`}
+                  />
+                </div>
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
+            {/* Room + Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
                 <Label htmlFor="roomNumber">Assign Room</Label>
                 <select
                   id="roomNumber"
                   {...register("roomNumber")}
-                  className={`flex h-12 w-full rounded-xl border-2 border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all ${errors.roomNumber ? "border-destructive" : ""}`}
+                  className={`${inputCls(!!errors.roomNumber)} appearance-none cursor-pointer`}
                 >
                   <option value="">Select available room...</option>
-                  {availableRooms.map((room) => (
-                    <option key={room.id} value={room.number}>
-                      {room.number}
-                    </option>
+                  {availableRooms.map(room => (
+                    <option key={room.id} value={room.number}>{room.number}</option>
                   ))}
                 </select>
-                {errors.roomNumber && <p className="text-sm text-destructive">{errors.roomNumber.message}</p>}
+                {errors.roomNumber && <p className="text-xs text-destructive">{errors.roomNumber.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label>Auto Check-in Time</Label>
-                <div className="flex h-12 w-full rounded-xl border-2 border-border bg-secondary/50 px-4 items-center text-sm text-muted-foreground gap-2 cursor-not-allowed">
-                  <Clock className="h-4 w-4" />
-                  {currentTime.toLocaleString()}
+              <div className="space-y-1.5">
+                <Label>Auto Check-In Time</Label>
+                <div className="flex h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 items-center text-sm text-muted-foreground gap-2 cursor-not-allowed select-none">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  {currentTime.toLocaleString("en-IN")}
                 </div>
               </div>
             </div>
 
-            <div className="pt-6">
-              <Button type="submit" size="lg" className="w-full text-lg" isLoading={createBooking.isPending} disabled={availableRooms.length === 0}>
+            {/* Payment section */}
+            <div className="rounded-xl border border-border/60 bg-secondary/20 p-4 space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <IndianRupee className="h-3.5 w-3.5" />
+                Payment at Check-In
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="roomAmount">Total Room Amount (₹)</Label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      id="roomAmount"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      {...register("roomAmount", { valueAsNumber: true })}
+                      className={`${inputCls(!!errors.roomAmount)} pl-9`}
+                    />
+                  </div>
+                  {errors.roomAmount && <p className="text-xs text-destructive">{errors.roomAmount.message}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="amountPaid">Amount Paid Now (₹)</Label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      id="amountPaid"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      {...register("amountPaid", { valueAsNumber: true })}
+                      className={`${inputCls(!!errors.amountPaid)} pl-9`}
+                    />
+                  </div>
+                  {errors.amountPaid && <p className="text-xs text-destructive">{errors.amountPaid.message}</p>}
+                </div>
+              </div>
+
+              {/* Payment method selector */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Payment Method
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {PAYMENT_METHODS.map(method => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setValue("paymentMethod", method)}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                        watch("paymentMethod") === method
+                          ? "bg-primary text-primary-foreground border-primary shadow-md"
+                          : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                      }`}
+                    >
+                      {method === "PhonePe" ? "📱 PhonePe" : method === "GPay" ? "📲 GPay" : method === "Card" ? "💳 Card" : "💵 Cash"}
+                    </button>
+                  ))}
+                </div>
+                {errors.paymentMethod && <p className="text-xs text-destructive">{errors.paymentMethod.message}</p>}
+              </div>
+
+              {/* Due amount display */}
+              <div className={`flex items-center justify-between rounded-xl px-4 py-3 border ${
+                dueAmount > 0 ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-success/10 border-success/30 text-success"
+              }`}>
+                <span className="text-sm font-semibold">
+                  {dueAmount > 0 ? "Due Amount Remaining" : "Fully Paid"}
+                </span>
+                <span className="text-xl font-bold">₹{dueAmount.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full text-base"
+                isLoading={createBooking.isPending}
+                disabled={availableRooms.length === 0}
+              >
                 {availableRooms.length === 0 ? "No Rooms Available" : "Confirm Check-In"}
               </Button>
             </div>

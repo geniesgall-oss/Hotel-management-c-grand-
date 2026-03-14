@@ -12,4 +12,8 @@ export interface Booking {
   phone: string;
   roomNumber: string;
   checkInTime: string;
+  roomAmount: number;
+  amountPaid: number;
+  paymentMethod: string;
+  dueAmount: number;
 }

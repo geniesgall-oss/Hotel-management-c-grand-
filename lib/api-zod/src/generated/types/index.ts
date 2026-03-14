@@ -7,6 +7,7 @@
  */
 
 export * from "./booking";
+export * from "./checkoutRequest";
 export * from "./createBookingRequest";
 export * from "./errorResponse";
 export * from "./healthStatus";

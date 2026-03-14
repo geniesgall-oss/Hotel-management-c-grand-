@@ -27,43 +27,47 @@
 }
 
 :root {
-  /* Slate & Navy Professional Palette */
-  --background: 210 20% 98%;
-  --foreground: 222 47% 11%;
-  
-  --primary: 215 25% 27%;
-  --primary-foreground: 210 40% 98%;
-  
-  --secondary: 214 32% 91%;
-  --secondary-foreground: 215 25% 27%;
-  
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  
-  --accent: 215 25% 27%;
-  --accent-foreground: 210 40% 98%;
-  
-  --destructive: 348 83% 47%;
+  /* Dark mode — deep slate/navy */
+  --background: 222 28% 9%;
+  --foreground: 210 40% 96%;
+
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 8%;
+
+  --secondary: 222 22% 15%;
+  --secondary-foreground: 210 40% 90%;
+
+  --muted: 222 22% 13%;
+  --muted-foreground: 215 16% 50%;
+
+  --accent: 217 91% 60%;
+  --accent-foreground: 222 47% 8%;
+
+  --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
-  
-  --success: 142 71% 40%;
+
+  --success: 142 71% 45%;
   --success-foreground: 210 40% 98%;
-  
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 215 25% 27%;
-  
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+
+  --border: 222 20% 18%;
+  --input: 222 20% 20%;
+  --ring: 217 91% 60%;
+
+  --card: 222 28% 12%;
+  --card-foreground: 210 40% 96%;
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/20 selection:text-primary;
+    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/30 selection:text-primary-foreground;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     @apply tracking-tight font-medium;
+  }
+
+  * {
+    @apply border-border;
   }
 }
