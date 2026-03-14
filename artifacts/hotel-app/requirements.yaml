@@ -1,0 +1,20 @@
+packages:
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility function to efficiently merge Tailwind CSS classes"
+  "framer-motion": "For page transitions and interactive animations"
+  "lucide-react": "Beautiful, consistent icons"
+  "react-hook-form": "Form state management"
+  "@hookform/resolvers": "Form validation resolvers"
+  "zod": "Schema validation for forms"
+  "date-fns": "Date formatting"
+  "sonner": "Premium toast notifications"
+
+images:
+  - path: "artifacts/hotel-app/public/images/hotel-bg.png"
+    description: "A subtle, abstract modern architectural background featuring glass and steel textures in deep navy and slate tones with soft atmospheric lighting, suitable for a professional login page background"
+    aspect_ratio: "16:9"
+
+notes:
+  - Global fetch interceptor added in App.tsx to automatically inject Authorization header for all API calls using the generated API client.
+  - The API client handles REST calls automatically via React Query.
+  - Wouter is used for routing as per constraints.
