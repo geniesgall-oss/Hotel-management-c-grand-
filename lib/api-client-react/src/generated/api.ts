@@ -377,6 +377,84 @@ export function useGetRooms<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const getMarkRoomCleanUrl = (number: string) => {
+  return `/api/rooms/${number}/clean`;
+};
+
+export const markRoomClean = async (
+  number: string,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getMarkRoomCleanUrl(number), {
+    ...options,
+    method: "PUT",
+  });
+};
+
+export const getMarkRoomCleanMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markRoomClean>>,
+    TError,
+    { number: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markRoomClean>>,
+  TError,
+  { number: string },
+  TContext
+> => {
+  const mutationKey = ["markRoomClean"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markRoomClean>>,
+    { number: string }
+  > = (props) => {
+    const { number } = props ?? {};
+
+    return markRoomClean(number, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkRoomCleanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markRoomClean>>
+>;
+
+export type MarkRoomCleanMutationError = ErrorType<ErrorResponse>;
+
+export const useMarkRoomClean = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markRoomClean>>,
+    TError,
+    { number: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markRoomClean>>,
+  TError,
+  { number: string },
+  TContext
+> => {
+  return useMutation(getMarkRoomCleanMutationOptions(options));
+};
+
 export const getGetBookingsUrl = () => {
   return `/api/bookings`;
 };

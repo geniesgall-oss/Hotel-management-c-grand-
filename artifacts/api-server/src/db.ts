@@ -50,6 +50,10 @@ db.exec(`
     checked_out_by TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS dirty_rooms (
+    room_number TEXT PRIMARY KEY
+  );
 `);
 
 // Migrate bookings columns
@@ -62,14 +66,14 @@ if (!bookingColumns.includes("checked_in_by"))  db.exec("ALTER TABLE bookings AD
 
 // Migrate history columns
 const historyColumns = (db.prepare("PRAGMA table_info(history)").all() as { name: string }[]).map(c => c.name);
-if (!historyColumns.includes("room_amount"))                   db.exec("ALTER TABLE history ADD COLUMN room_amount REAL NOT NULL DEFAULT 0");
-if (!historyColumns.includes("amount_paid_at_checkin"))        db.exec("ALTER TABLE history ADD COLUMN amount_paid_at_checkin REAL NOT NULL DEFAULT 0");
-if (!historyColumns.includes("payment_method_at_checkin"))     db.exec("ALTER TABLE history ADD COLUMN payment_method_at_checkin TEXT NOT NULL DEFAULT 'Cash'");
-if (!historyColumns.includes("due_amount_paid_at_checkout"))   db.exec("ALTER TABLE history ADD COLUMN due_amount_paid_at_checkout REAL NOT NULL DEFAULT 0");
-if (!historyColumns.includes("due_payment_method_at_checkout"))db.exec("ALTER TABLE history ADD COLUMN due_payment_method_at_checkout TEXT NOT NULL DEFAULT 'Cash'");
-if (!historyColumns.includes("total_paid"))                    db.exec("ALTER TABLE history ADD COLUMN total_paid REAL NOT NULL DEFAULT 0");
-if (!historyColumns.includes("checked_in_by"))                 db.exec("ALTER TABLE history ADD COLUMN checked_in_by TEXT NOT NULL DEFAULT ''");
-if (!historyColumns.includes("checked_out_by"))                db.exec("ALTER TABLE history ADD COLUMN checked_out_by TEXT NOT NULL DEFAULT ''");
+if (!historyColumns.includes("room_amount"))                    db.exec("ALTER TABLE history ADD COLUMN room_amount REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("amount_paid_at_checkin"))         db.exec("ALTER TABLE history ADD COLUMN amount_paid_at_checkin REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("payment_method_at_checkin"))      db.exec("ALTER TABLE history ADD COLUMN payment_method_at_checkin TEXT NOT NULL DEFAULT 'Cash'");
+if (!historyColumns.includes("due_amount_paid_at_checkout"))    db.exec("ALTER TABLE history ADD COLUMN due_amount_paid_at_checkout REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("due_payment_method_at_checkout")) db.exec("ALTER TABLE history ADD COLUMN due_payment_method_at_checkout TEXT NOT NULL DEFAULT 'Cash'");
+if (!historyColumns.includes("total_paid"))                     db.exec("ALTER TABLE history ADD COLUMN total_paid REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("checked_in_by"))                  db.exec("ALTER TABLE history ADD COLUMN checked_in_by TEXT NOT NULL DEFAULT ''");
+if (!historyColumns.includes("checked_out_by"))                 db.exec("ALTER TABLE history ADD COLUMN checked_out_by TEXT NOT NULL DEFAULT ''");
 
 // Remove old default admin/staff if they exist
 const oldAdmin = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();

@@ -92,6 +92,30 @@ paths:
                 items:
                   $ref: "#/components/schemas/Room"
 
+  /rooms/{number}/clean:
+    put:
+      operationId: markRoomClean
+      tags: [rooms]
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room marked as clean/available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /bookings:
     get:
       operationId: getBookings
@@ -315,7 +339,7 @@ components:
           type: string
         status:
           type: string
-          enum: [available, occupied]
+          enum: [available, occupied, dirty]
         currentBooking:
           $ref: "#/components/schemas/Booking"
           nullable: true

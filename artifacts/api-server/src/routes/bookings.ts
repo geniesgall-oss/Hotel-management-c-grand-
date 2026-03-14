@@ -58,6 +58,9 @@ router.post("/bookings", (req, res) => {
     return res.status(400).json({ error: `Room ${roomNumber} is already occupied` });
   }
 
+  // If room was dirty, remove from dirty list (it's being checked in)
+  db.prepare("DELETE FROM dirty_rooms WHERE room_number = ?").run(roomNumber);
+
   const checkInTime = new Date().toISOString();
   const totalAmount = Number(roomAmount) || 0;
   const paid = Number(amountPaid) || 0;
@@ -73,7 +76,7 @@ router.post("/bookings", (req, res) => {
   return res.status(201).json(toBooking(booking));
 });
 
-// Admin: update booking (edit guest details / amounts)
+// Admin: update booking
 router.put("/bookings/:id", (req, res) => {
   const authHeader = req.headers.authorization as string | undefined;
   const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
@@ -113,10 +116,12 @@ router.delete("/bookings/:id", (req, res) => {
   if (session.role !== "admin") return res.status(403).json({ error: "Only admins can delete bookings" });
 
   const id = parseInt(req.params.id, 10);
-  const booking = db.prepare("SELECT id FROM bookings WHERE id = ?").get(id);
+  const booking = db.prepare("SELECT room_number FROM bookings WHERE id = ?").get(id) as { room_number: string } | undefined;
   if (!booking) return res.status(404).json({ error: "Booking not found" });
 
   db.prepare("DELETE FROM bookings WHERE id = ?").run(id);
+  // Mark as dirty when admin deletes an active booking
+  db.prepare("INSERT OR REPLACE INTO dirty_rooms (room_number) VALUES (?)").run(booking.room_number);
   return res.json({ success: true, message: "Booking deleted" });
 });
 
@@ -161,6 +166,9 @@ router.post("/bookings/:id/checkout", (req, res) => {
     ) as { lastInsertRowid: number };
 
   db.prepare("DELETE FROM bookings WHERE id = ?").run(id);
+
+  // Mark room as dirty after checkout
+  db.prepare("INSERT OR REPLACE INTO dirty_rooms (room_number) VALUES (?)").run(booking.room_number);
 
   const record = db.prepare("SELECT * FROM history WHERE id = ?").get(result.lastInsertRowid) as HistoryRow;
 

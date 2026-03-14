@@ -47,6 +47,7 @@ export type RoomStatus = (typeof RoomStatus)[keyof typeof RoomStatus];
 export const RoomStatus = {
   available: "available",
   occupied: "occupied",
+  dirty: "dirty",
 } as const;
 
 export interface Booking {

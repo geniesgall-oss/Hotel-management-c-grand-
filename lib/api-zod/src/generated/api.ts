@@ -41,7 +41,7 @@ export const GetMeResponse = zod.object({
 export const GetRoomsResponseItem = zod.object({
   id: zod.number(),
   number: zod.string(),
-  status: zod.enum(["available", "occupied"]),
+  status: zod.enum(["available", "occupied", "dirty"]),
   currentBooking: zod
     .object({
       id: zod.number(),
@@ -58,6 +58,15 @@ export const GetRoomsResponseItem = zod.object({
     .nullish(),
 });
 export const GetRoomsResponse = zod.array(GetRoomsResponseItem);
+
+export const MarkRoomCleanParams = zod.object({
+  number: zod.coerce.string(),
+});
+
+export const MarkRoomCleanResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
 
 export const GetBookingsResponseItem = zod.object({
   id: zod.number(),
