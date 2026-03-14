@@ -49,52 +49,34 @@ db.exec(`
   );
 `);
 
-// Add columns to existing tables if they don't exist (migration)
+// Migrate bookings columns
 const bookingColumns = (db.prepare("PRAGMA table_info(bookings)").all() as { name: string }[]).map(c => c.name);
-if (!bookingColumns.includes("room_amount")) {
-  db.exec("ALTER TABLE bookings ADD COLUMN room_amount REAL NOT NULL DEFAULT 0");
-}
-if (!bookingColumns.includes("amount_paid")) {
-  db.exec("ALTER TABLE bookings ADD COLUMN amount_paid REAL NOT NULL DEFAULT 0");
-}
-if (!bookingColumns.includes("payment_method")) {
-  db.exec("ALTER TABLE bookings ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'Cash'");
-}
-if (!bookingColumns.includes("due_amount")) {
-  db.exec("ALTER TABLE bookings ADD COLUMN due_amount REAL NOT NULL DEFAULT 0");
-}
+if (!bookingColumns.includes("room_amount")) db.exec("ALTER TABLE bookings ADD COLUMN room_amount REAL NOT NULL DEFAULT 0");
+if (!bookingColumns.includes("amount_paid")) db.exec("ALTER TABLE bookings ADD COLUMN amount_paid REAL NOT NULL DEFAULT 0");
+if (!bookingColumns.includes("payment_method")) db.exec("ALTER TABLE bookings ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'Cash'");
+if (!bookingColumns.includes("due_amount")) db.exec("ALTER TABLE bookings ADD COLUMN due_amount REAL NOT NULL DEFAULT 0");
 
+// Migrate history columns
 const historyColumns = (db.prepare("PRAGMA table_info(history)").all() as { name: string }[]).map(c => c.name);
-if (!historyColumns.includes("room_amount")) {
-  db.exec("ALTER TABLE history ADD COLUMN room_amount REAL NOT NULL DEFAULT 0");
-}
-if (!historyColumns.includes("amount_paid_at_checkin")) {
-  db.exec("ALTER TABLE history ADD COLUMN amount_paid_at_checkin REAL NOT NULL DEFAULT 0");
-}
-if (!historyColumns.includes("payment_method_at_checkin")) {
-  db.exec("ALTER TABLE history ADD COLUMN payment_method_at_checkin TEXT NOT NULL DEFAULT 'Cash'");
-}
-if (!historyColumns.includes("due_amount_paid_at_checkout")) {
-  db.exec("ALTER TABLE history ADD COLUMN due_amount_paid_at_checkout REAL NOT NULL DEFAULT 0");
-}
-if (!historyColumns.includes("due_payment_method_at_checkout")) {
-  db.exec("ALTER TABLE history ADD COLUMN due_payment_method_at_checkout TEXT NOT NULL DEFAULT 'Cash'");
-}
-if (!historyColumns.includes("total_paid")) {
-  db.exec("ALTER TABLE history ADD COLUMN total_paid REAL NOT NULL DEFAULT 0");
-}
+if (!historyColumns.includes("room_amount")) db.exec("ALTER TABLE history ADD COLUMN room_amount REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("amount_paid_at_checkin")) db.exec("ALTER TABLE history ADD COLUMN amount_paid_at_checkin REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("payment_method_at_checkin")) db.exec("ALTER TABLE history ADD COLUMN payment_method_at_checkin TEXT NOT NULL DEFAULT 'Cash'");
+if (!historyColumns.includes("due_amount_paid_at_checkout")) db.exec("ALTER TABLE history ADD COLUMN due_amount_paid_at_checkout REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("due_payment_method_at_checkout")) db.exec("ALTER TABLE history ADD COLUMN due_payment_method_at_checkout TEXT NOT NULL DEFAULT 'Cash'");
+if (!historyColumns.includes("total_paid")) db.exec("ALTER TABLE history ADD COLUMN total_paid REAL NOT NULL DEFAULT 0");
 
-const existingAdmin = db.prepare("SELECT id FROM users WHERE username = ?").get("admin");
-if (!existingAdmin) {
-  db.prepare("INSERT INTO users (username, password, role, email) VALUES (?, ?, ?, ?)").run(
-    "admin", "admin123", "admin", "admin@hotel.com"
-  );
-}
+// Remove old default admin/staff if they exist, then seed correct credentials
+const oldAdmin = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();
+if (oldAdmin) db.prepare("DELETE FROM users WHERE username = 'admin'").run();
 
-const existingStaff = db.prepare("SELECT id FROM users WHERE username = ?").get("staff");
-if (!existingStaff) {
+const oldStaff = db.prepare("SELECT id FROM users WHERE username = 'staff'").get();
+if (oldStaff) db.prepare("DELETE FROM users WHERE username = 'staff'").run();
+
+// Seed Bhargav as the main admin (only if no admin exists at all)
+const anyAdmin = db.prepare("SELECT id FROM users WHERE role = 'admin'").get();
+if (!anyAdmin) {
   db.prepare("INSERT INTO users (username, password, role, email) VALUES (?, ?, ?, ?)").run(
-    "staff", "staff123", "staff", null
+    "Bhargav", "00078", "admin", null
   );
 }
 

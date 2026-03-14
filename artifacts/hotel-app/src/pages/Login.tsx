@@ -21,10 +21,6 @@ export default function Login() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "admin",
-      password: "admin123"
-    }
   })
 
   const onSubmit = async (data: LoginForm) => {
@@ -41,9 +37,9 @@ export default function Login() {
       {/* Visual left panel */}
       <div className="hidden lg:flex flex-1 relative bg-primary overflow-hidden items-center justify-center">
         <div className="absolute inset-0 z-0">
-          <img 
-            src={`${import.meta.env.BASE_URL}images/hotel-bg.png`} 
-            alt="Hotel Background" 
+          <img
+            src={`${import.meta.env.BASE_URL}images/hotel-bg.png`}
+            alt="Hotel Background"
             className="w-full h-full object-cover opacity-40 mix-blend-overlay"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/50 to-transparent" />
@@ -52,9 +48,11 @@ export default function Login() {
           <div className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center mb-8 shadow-2xl">
             <BedDouble className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-5xl font-display font-bold mb-6 leading-tight">Elevate Your Hospitality Management.</h1>
+          <h1 className="text-5xl font-display font-bold mb-6 leading-tight">
+            Elevate Your Hospitality Management.
+          </h1>
           <p className="text-xl text-primary-foreground/80 leading-relaxed font-light">
-            Streamlined check-ins, real-time room status, and comprehensive history tracking. Built for modern hoteliers.
+            Streamlined check-ins, real-time room status, and comprehensive history tracking.
           </p>
         </div>
       </div>
@@ -76,7 +74,8 @@ export default function Login() {
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
-                  placeholder="admin"
+                  placeholder="Enter your username"
+                  autoComplete="username"
                   {...register("username")}
                   className={errors.username ? "border-destructive" : ""}
                 />
@@ -84,13 +83,12 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   {...register("password")}
                   className={errors.password ? "border-destructive" : ""}
                 />
@@ -101,20 +99,6 @@ export default function Login() {
                 Sign In to Dashboard
               </Button>
             </form>
-
-            <div className="mt-8 pt-6 border-t border-border space-y-3">
-              <p className="text-sm text-center font-semibold text-foreground mb-4">Demo Credentials</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-secondary p-3 rounded-xl text-center">
-                  <span className="block text-xs text-muted-foreground uppercase tracking-wider mb-1">Admin Role</span>
-                  <span className="text-sm font-mono font-medium text-foreground">admin / admin123</span>
-                </div>
-                <div className="bg-secondary p-3 rounded-xl text-center">
-                  <span className="block text-xs text-muted-foreground uppercase tracking-wider mb-1">Staff Role</span>
-                  <span className="text-sm font-mono font-medium text-foreground">staff / staff123</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
