@@ -1,125 +1,59 @@
-# Hotel C Grand — Management System
+# Hotel Management System
 
-A full-stack hotel management web app for managing 12 rooms (LV1–LV12) with check-in/check-out, real-time room status, payment tracking, booking history, and monthly reports.
+A full-stack hotel management application for tracking room occupancy, guest check-ins/check-outs, payment records, and monthly revenue reports. Built for small hotels with 12 rooms.
 
 ## Features
 
-- **Dashboard** — Live status of all 12 rooms (Available / Occupied / Dirty)
-- **Check-In** — Register guests with Indian mobile numbers (+91), room amount, and payment method (Cash / PhonePe / GPay / Card)
-- **Check-Out** — Process departures and collect any remaining due amount
-- **Room Lifecycle** — Checkout marks a room Dirty; staff manually marks it Clean before it becomes Available again
-- **History** — Last 2 months of checkout records; admins can edit guest details, amounts, and dates
-- **Monthly Report** — Revenue and occupancy summary with payment method breakdown for any selected month
-- **User Management** — Admin-only page to add and manage staff accounts
-- **Roles** — Admin (full access) and Staff (no user management, no booking edits)
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18 + Vite + Tailwind CSS |
-| Backend | Express 5 + TypeScript |
-| Database | SQLite via `better-sqlite3` |
-| API contract | OpenAPI 3.1 with Orval codegen |
-| Monorepo | pnpm workspaces |
+- **Dashboard** — Real-time overview of all rooms (available, occupied, dirty)
+- **Check-In** — Register guests with room assignment and payment details
+- **Check-Out** — Process departures and collect outstanding dues
+- **History** — Browse past 2 months of booking records with full details
+- **Monthly Reports** — Revenue summaries with payment method breakdowns
+- **Role-based access** — Admin and staff roles with different permissions
 
 ## Prerequisites
 
-- **Node.js** ≥ 20
-- **pnpm** ≥ 9 — install with `npm install -g pnpm`
+- [Node.js](https://nodejs.org/) >= 20
+- [pnpm](https://pnpm.io/) >= 9
 
 ## Getting Started
 
-### 1. Install dependencies
-
 ```bash
+# Install dependencies
 pnpm install
-```
 
-### 2. Start the API server
+# Rebuild TypeScript declarations for the API client
+pnpm run typecheck:libs
 
-```bash
+# Start the API server (runs on port 3001 by default)
 pnpm --filter @workspace/api-server run dev
-```
 
-The API server starts on **port 8080** by default. The SQLite database (`hotel.db`) is created automatically on first run inside `artifacts/api-server/`.
-
-### 3. Start the frontend
-
-```bash
+# In a separate terminal, start the frontend (runs on port 3000 by default)
 pnpm --filter @workspace/hotel-app run dev
 ```
 
-The frontend starts on **port 3000** by default. Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Default Login
+## Default Admin Credentials
 
-| Field | Value |
-|-------|-------|
-| Username | `Bhargav` |
-| Password | `00078` |
-| Role | Admin |
-
-## Environment Variables
-
-Both the API server and the frontend work out of the box with no configuration. The following variables are optional overrides:
-
-### API Server (`artifacts/api-server/`)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8080` | Port the API server listens on |
-| `DB_PATH` | Auto-resolved next to the server entry file | Absolute path to the SQLite database file |
-
-### Frontend (`artifacts/hotel-app/`)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `3000` | Port the Vite dev server listens on |
-| `BASE_PATH` | `/` | URL base path (used for sub-path deployments) |
+| Username | Password |
+|----------|----------|
+| Bhargav  | 00078    |
 
 ## Project Structure
 
 ```
-.
 ├── artifacts/
-│   ├── api-server/          # Express backend
-│   │   ├── src/
-│   │   │   ├── db.ts        # SQLite setup & migrations
-│   │   │   ├── index.ts     # Server entry point
-│   │   │   └── routes/      # API route handlers
-│   │   └── build.ts         # esbuild production bundler
-│   └── hotel-app/           # React frontend
-│       └── src/
-│           ├── pages/       # Page components
-│           ├── components/  # Shared UI components
-│           └── hooks/       # Custom React hooks
-└── lib/
-    ├── api-spec/            # OpenAPI 3.1 spec + Orval config
-    ├── api-client-react/    # Auto-generated React Query hooks
-    └── api-zod/             # Auto-generated Zod schemas
+│   ├── api-server/      # Express + SQLite backend
+│   └── hotel-app/       # React + Vite + Tailwind frontend
+├── lib/
+│   └── api-client-react/ # Generated React Query hooks for the API
+└── package.json          # pnpm workspace root
 ```
 
-## Building for Production
+## Tech Stack
 
-```bash
-# Build the API server (outputs artifacts/api-server/dist/index.cjs)
-pnpm --filter @workspace/api-server run build
+- **Frontend:** React, Vite, Tailwind CSS, Framer Motion, React Query
+- **Backend:** Express, SQLite (better-sqlite3), Zod
+- **API Client:** Auto-generated with Orval (OpenAPI → React Query hooks)
 
-# Build the frontend (outputs artifacts/hotel-app/dist/public/)
-pnpm --filter @workspace/hotel-app run build
-```
-
-Run the production API server:
-```bash
-node artifacts/api-server/dist/index.cjs
-```
-
-## Regenerating the API Client
-
-After changing `lib/api-spec/openapi.yaml`:
-
-```bash
-pnpm --filter @workspace/api-spec run codegen
-pnpm tsc -b lib/api-client-react
-```

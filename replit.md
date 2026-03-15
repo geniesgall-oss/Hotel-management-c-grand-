@@ -58,3 +58,10 @@ Full-stack hotel management system at `artifacts/hotel-app` (frontend) + `artifa
 - Frontend: React + Vite + Tailwind (dark theme), React Query hooks from codegen
 - Backend: Express 5 + better-sqlite3, session-based auth (in-memory tokens)
 - API spec: `lib/api-spec/openapi.yaml` → codegen → `lib/api-client-react/src/generated/api.ts`
+
+### Local Development (GitHub clone)
+- `vite.config.ts` defaults PORT=3000 and BASE_PATH=/ when env vars are unset
+- Replit-specific Vite plugins (runtime-error-modal, cartographer, dev-banner) are guarded behind `REPL_ID` check
+- SQLite `.db`/`.db-shm`/`.db-wal` files are gitignored
+- `button.tsx` exports `buttonVariants()` helper for use by alert-dialog, calendar, pagination components
+- `command.tsx` uses a self-contained overlay instead of depending on the custom dialog component

@@ -61,7 +61,7 @@ export default function MonthlyReport() {
 
   const { data: report, isLoading } = useGetMonthlyReport(
     { year, month },
-    { query: { queryKey: getGetMonthlyReportQueryKey({ year, month }), enabled: true } }
+    { query: { enabled: true, queryKey: getGetMonthlyReportQueryKey({ year, month }) } }
   )
 
   const prev = () => {
