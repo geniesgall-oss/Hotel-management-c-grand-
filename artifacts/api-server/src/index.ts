@@ -1,12 +1,17 @@
 import app from "./app";
-import { purgeOldHistory } from "./db.js";
+import { initDb, purgeOldHistory } from "./db.js";
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-
-  // Purge history records older than 2 months on startup, then every 24 hours
-  purgeOldHistory();
-  setInterval(purgeOldHistory, 24 * 60 * 60 * 1000);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      purgeOldHistory();
+      setInterval(purgeOldHistory, 24 * 60 * 60 * 1000);
+    });
+  })
+  .catch((err) => {
+    console.error("[startup] Failed to initialise database:", err);
+    process.exit(1);
+  });

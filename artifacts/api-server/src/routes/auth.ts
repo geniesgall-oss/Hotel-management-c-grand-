@@ -1,5 +1,5 @@
 import { Router } from "express";
-import db from "../db.js";
+import pool from "../db.js";
 import crypto from "crypto";
 
 const router = Router();
@@ -10,27 +10,34 @@ export function getSession(token: string) {
   return sessions.get(token) ?? null;
 }
 
-router.post("/auth/login", (req, res) => {
+router.post("/auth/login", async (req, res) => {
   const { username, password } = req.body as { username: string; password: string };
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password required" });
   }
 
-  const user = db.prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password) as
-    | { id: number; username: string; role: string; email: string | null }
-    | undefined;
+  try {
+    const { rows } = await pool.query(
+      "SELECT id, username, role, email FROM users WHERE username = $1 AND password = $2",
+      [username, password]
+    );
+    const user = rows[0] as { id: number; username: string; role: string; email: string | null } | undefined;
 
-  if (!user) {
-    return res.status(401).json({ error: "Invalid credentials" });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    sessions.set(token, { id: user.id, username: user.username, role: user.role, email: user.email });
+
+    return res.json({
+      token,
+      user: { id: user.id, username: user.username, role: user.role, email: user.email },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Database error" });
   }
-
-  const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, { id: user.id, username: user.username, role: user.role, email: user.email });
-
-  return res.json({
-    token,
-    user: { id: user.id, username: user.username, role: user.role, email: user.email },
-  });
 });
 
 router.post("/auth/logout", (req, res) => {

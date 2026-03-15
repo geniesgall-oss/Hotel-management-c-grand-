@@ -1,5 +1,5 @@
 import { Router } from "express";
-import db from "../db.js";
+import pool from "../db.js";
 import { getSession } from "./auth.js";
 
 const router = Router();
@@ -21,40 +21,43 @@ function toRecord(r: HistoryRow) {
     roomNumber: r.room_number,
     checkInTime: r.check_in_time,
     checkOutTime: r.check_out_time,
-    roomAmount: r.room_amount,
-    amountPaidAtCheckin: r.amount_paid_at_checkin,
+    roomAmount: Number(r.room_amount),
+    amountPaidAtCheckin: Number(r.amount_paid_at_checkin),
     paymentMethodAtCheckin: r.payment_method_at_checkin,
-    dueAmountPaidAtCheckout: r.due_amount_paid_at_checkout,
+    dueAmountPaidAtCheckout: Number(r.due_amount_paid_at_checkout),
     duePaymentMethodAtCheckout: r.due_payment_method_at_checkout,
-    totalPaid: r.total_paid,
+    totalPaid: Number(r.total_paid),
     checkedInBy: r.checked_in_by || "—",
     checkedOutBy: r.checked_out_by || "—",
-    extrasTotal: r.extras_total ?? 0,
+    extrasTotal: Number(r.extras_total ?? 0),
     checkoutSplits: JSON.parse(r.checkout_splits || "[]"),
   };
 }
 
-router.get("/history", (_req, res) => {
+router.get("/history", async (_req, res) => {
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
   const cutoff = twoMonthsAgo.toISOString();
-  const records = db
-    .prepare("SELECT * FROM history WHERE check_out_time >= ? ORDER BY check_out_time DESC")
-    .all(cutoff) as HistoryRow[];
-  return res.json(records.map(toRecord));
+
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM history WHERE check_out_time >= $1 ORDER BY check_out_time DESC",
+      [cutoff]
+    );
+    return res.json((rows as HistoryRow[]).map(toRecord));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Database error" });
+  }
 });
 
-// Admin: edit a history record
-router.put("/history/:id", (req, res) => {
+router.put("/history/:id", async (req, res) => {
   const authHeader = req.headers.authorization as string | undefined;
   const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
   if (!session) return res.status(401).json({ error: "Not authenticated" });
   if (session.role !== "admin") return res.status(403).json({ error: "Only admins can edit records" });
 
   const id = parseInt(req.params.id, 10);
-  const existing = db.prepare("SELECT * FROM history WHERE id = ?").get(id) as HistoryRow | undefined;
-  if (!existing) return res.status(404).json({ error: "Record not found" });
-
   const { guestName, phone, roomAmount, amountPaidAtCheckin, checkInTime, checkOutTime } = req.body as {
     guestName: string; phone: string;
     roomAmount: number; amountPaidAtCheckin: number;
@@ -65,40 +68,53 @@ router.put("/history/:id", (req, res) => {
     return res.status(400).json({ error: "Guest name and phone are required" });
   }
 
-  const roomAmt = Number(roomAmount) || 0;
-  const paidAtCheckin = Number(amountPaidAtCheckin) || 0;
-  const duePaid = existing.due_amount_paid_at_checkout;
-  const totalPaid = paidAtCheckin + duePaid;
+  try {
+    const { rows: existing } = await pool.query(
+      "SELECT due_amount_paid_at_checkout FROM history WHERE id = $1",
+      [id]
+    );
+    if (existing.length === 0) return res.status(404).json({ error: "Record not found" });
 
-  db.prepare(`
-    UPDATE history SET
-      guest_name=?, phone=?, room_amount=?,
-      amount_paid_at_checkin=?, total_paid=?,
-      check_in_time=?, check_out_time=?
-    WHERE id=?
-  `).run(
-    guestName.trim(), phone.trim(), roomAmt,
-    paidAtCheckin, totalPaid,
-    checkInTime, checkOutTime, id
-  );
+    const roomAmt = Number(roomAmount) || 0;
+    const paidAtCheckin = Number(amountPaidAtCheckin) || 0;
+    const duePaid = Number(existing[0].due_amount_paid_at_checkout);
+    const totalPaid = paidAtCheckin + duePaid;
 
-  const updated = db.prepare("SELECT * FROM history WHERE id = ?").get(id) as HistoryRow;
-  return res.json(toRecord(updated));
+    const { rows } = await pool.query(
+      `UPDATE history SET
+        guest_name=$1, phone=$2, room_amount=$3,
+        amount_paid_at_checkin=$4, total_paid=$5,
+        check_in_time=$6, check_out_time=$7
+       WHERE id=$8
+       RETURNING *`,
+      [guestName.trim(), phone.trim(), roomAmt, paidAtCheckin, totalPaid, checkInTime, checkOutTime, id]
+    );
+
+    return res.json(toRecord(rows[0] as HistoryRow));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Database error" });
+  }
 });
 
-// Admin: delete a history record
-router.delete("/history/:id", (req, res) => {
+router.delete("/history/:id", async (req, res) => {
   const authHeader = req.headers.authorization as string | undefined;
   const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
   if (!session) return res.status(401).json({ error: "Not authenticated" });
   if (session.role !== "admin") return res.status(403).json({ error: "Only admins can delete history records" });
 
   const id = parseInt(req.params.id, 10);
-  const record = db.prepare("SELECT id FROM history WHERE id = ?").get(id);
-  if (!record) return res.status(404).json({ error: "History record not found" });
 
-  db.prepare("DELETE FROM history WHERE id = ?").run(id);
-  return res.json({ success: true, message: "History record deleted" });
+  try {
+    const { rows } = await pool.query("SELECT id FROM history WHERE id = $1", [id]);
+    if (rows.length === 0) return res.status(404).json({ error: "History record not found" });
+
+    await pool.query("DELETE FROM history WHERE id = $1", [id]);
+    return res.json({ success: true, message: "History record deleted" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Database error" });
+  }
 });
 
 export default router;
