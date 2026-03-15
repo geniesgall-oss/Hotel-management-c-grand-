@@ -1,6 +1,10 @@
 import { useState } from "react"
-import { useGetRooms, useUpdateBooking, useDeleteBooking, useMarkRoomClean } from "@workspace/api-client-react"
-import type { Booking } from "@workspace/api-client-react"
+import {
+  useGetRooms, useUpdateBooking, useDeleteBooking, useMarkRoomClean,
+  useGetBookingExtras, useAddBookingExtra, useDeleteBookingExtra,
+  getGetBookingExtrasQueryKey,
+} from "@workspace/api-client-react"
+import type { Booking, RoomExtra } from "@workspace/api-client-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +15,7 @@ import { motion, AnimatePresence, type Variants, type Easing } from "framer-moti
 import {
   DoorOpen, User, Phone, CalendarClock, IndianRupee, AlertCircle,
   Pencil, Trash2, X, Check, CreditCard, Sparkles, Wind,
+  ShoppingBag, Plus, Minus,
 } from "lucide-react"
 import { format } from "date-fns"
 
@@ -22,6 +27,157 @@ const cardVariants: Variants = {
     opacity: 1, y: 0, scale: 1,
     transition: { delay: i * 0.04, duration: 0.35, ease: "easeOut" as Easing },
   }),
+}
+
+function ExtrasModal({ booking, onClose }: { booking: Booking; onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const { data: extras, isLoading } = useGetBookingExtras(booking.id, {
+    query: { queryKey: getGetBookingExtrasQueryKey(booking.id) }
+  })
+  const addExtra = useAddBookingExtra()
+  const deleteExtra = useDeleteBookingExtra()
+
+  const [itemName, setItemName] = useState("")
+  const [rate, setRate] = useState("")
+  const [qty, setQty] = useState("1")
+
+  const extrasTotal = (extras ?? []).reduce((sum, e) => sum + e.rate * e.qty, 0)
+
+  const handleAdd = async () => {
+    if (!itemName.trim()) { toast.error("Enter an item name"); return }
+    const rateNum = Number(rate)
+    if (!rateNum || rateNum <= 0) { toast.error("Enter a valid rate"); return }
+    try {
+      await addExtra.mutateAsync({ id: booking.id, data: { itemName: itemName.trim(), rate: rateNum, qty: Math.max(1, Number(qty) || 1) } })
+      toast.success(`Added: ${itemName.trim()}`)
+      queryClient.invalidateQueries({ queryKey: getGetBookingExtrasQueryKey(booking.id) })
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
+      setItemName(""); setRate(""); setQty("1")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add item")
+    }
+  }
+
+  const handleDelete = async (extra: RoomExtra) => {
+    try {
+      await deleteExtra.mutateAsync({ id: booking.id, extraId: extra.id })
+      toast.success(`Removed: ${extra.itemName}`)
+      queryClient.invalidateQueries({ queryKey: getGetBookingExtrasQueryKey(booking.id) })
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove item")
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ scale: 0.93, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 26 }}
+        className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md flex flex-col max-h-[85vh]"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/50">
+          <div>
+            <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" />
+              Room Extras — {booking.roomNumber}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{booking.guestName}</p>
+          </div>
+          <button onClick={onClose} className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body — scrollable */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {/* Extras list */}
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2].map(i => <div key={i} className="h-10 bg-secondary rounded-xl animate-pulse" />)}
+            </div>
+          ) : extras && extras.length > 0 ? (
+            <div className="space-y-2">
+              {extras.map(extra => (
+                <div key={extra.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-secondary/40 rounded-xl border border-border/50 group">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{extra.itemName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ₹{extra.rate.toLocaleString("en-IN")} × {extra.qty}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-semibold text-foreground">
+                      ₹{(extra.rate * extra.qty).toLocaleString("en-IN")}
+                    </span>
+                    <button
+                      onClick={() => handleDelete(extra)}
+                      disabled={deleteExtra.isPending}
+                      className="h-6 w-6 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {/* Extras total */}
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-primary/8 rounded-xl border border-primary/20">
+                <span className="text-sm font-semibold text-foreground">Extras Total</span>
+                <span className="text-base font-bold text-primary">₹{extrasTotal.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              No extras added yet
+            </div>
+          )}
+
+          {/* Add new extra form */}
+          <div className="pt-2 border-t border-border/50 space-y-3">
+            <p className="text-sm font-semibold text-foreground">Add Item</p>
+            <div className="space-y-2">
+              <input
+                value={itemName}
+                onChange={e => setItemName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleAdd()}
+                placeholder="Item name (e.g. Water Bottle, Coke)"
+                className="flex h-10 w-full rounded-xl border border-border bg-input/50 px-3.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="number" min="0" value={rate}
+                    onChange={e => setRate(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleAdd()}
+                    placeholder="Rate"
+                    className="flex h-10 w-full rounded-xl border border-border bg-input/50 pl-8 pr-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+                <input
+                  type="number" min="1" value={qty}
+                  onChange={e => setQty(e.target.value)}
+                  placeholder="Qty"
+                  className="flex h-10 w-full rounded-xl border border-border bg-input/50 px-3.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+              <Button className="w-full" onClick={handleAdd} isLoading={addExtra.isPending}>
+                <Plus className="h-4 w-4 mr-1.5" />Add to Room
+              </Button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
 }
 
 export default function Dashboard() {
@@ -36,8 +192,8 @@ export default function Dashboard() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<Booking | null>(null)
   const [cleaningRoom, setCleaningRoom] = useState<string | null>(null)
+  const [extrasBooking, setExtrasBooking] = useState<Booking | null>(null)
 
-  // Edit form state
   const [editName, setEditName] = useState("")
   const [editPhone, setEditPhone] = useState("")
   const [editRoomAmount, setEditRoomAmount] = useState("")
@@ -164,9 +320,9 @@ export default function Dashboard() {
         {rooms?.map((room, idx) => {
           const isOccupied = room.status === "occupied"
           const isDirty    = room.status === "dirty"
-          const isAvailable = room.status === "available"
           const booking = room.currentBooking
           const hasDue = isOccupied && (booking?.dueAmount ?? 0) > 0
+          const hasExtras = isOccupied && (booking?.extrasTotal ?? 0) > 0
 
           return (
             <motion.div
@@ -193,6 +349,18 @@ export default function Dashboard() {
                       {room.number}
                     </CardTitle>
                     <div className="flex items-center gap-1">
+                      {isOccupied && booking && (
+                        <button
+                          onClick={() => setExtrasBooking(booking)}
+                          className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors relative"
+                          title="Room Extras"
+                        >
+                          <ShoppingBag className="h-3.5 w-3.5" />
+                          {hasExtras && (
+                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+                          )}
+                        </button>
+                      )}
                       {isAdmin && isOccupied && booking && (
                         <>
                           <button onClick={() => openEdit(booking)} className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors" title="Edit booking">
@@ -235,6 +403,9 @@ export default function Dashboard() {
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <IndianRupee className="h-3.5 w-3.5 shrink-0" />
                           <span>₹{booking.roomAmount?.toLocaleString("en-IN")}</span>
+                          {hasExtras && (
+                            <span className="text-primary font-medium">+₹{booking.extrasTotal?.toLocaleString("en-IN")}</span>
+                          )}
                         </div>
                         {hasDue ? (
                           <div className="flex items-center gap-1 text-xs font-semibold text-destructive">
@@ -283,6 +454,13 @@ export default function Dashboard() {
           )
         })}
       </div>
+
+      {/* ── Extras Modal ── */}
+      <AnimatePresence>
+        {extrasBooking && (
+          <ExtrasModal booking={extrasBooking} onClose={() => setExtrasBooking(null)} />
+        )}
+      </AnimatePresence>
 
       {/* ── Edit Booking Modal ── */}
       <AnimatePresence>

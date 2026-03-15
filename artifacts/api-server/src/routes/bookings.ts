@@ -17,7 +17,35 @@ type BookingRow = {
   checked_in_by: string;
 };
 
+type ExtraRow = {
+  id: number;
+  booking_id: number;
+  item_name: string;
+  rate: number;
+  qty: number;
+  created_at: string;
+};
+
+function getExtrasTotal(bookingId: number): number {
+  const extras = db.prepare(
+    "SELECT COALESCE(SUM(rate * qty), 0) as total FROM room_extras WHERE booking_id = ?"
+  ).get(bookingId) as { total: number };
+  return extras.total || 0;
+}
+
+function toExtra(e: ExtraRow) {
+  return {
+    id: e.id,
+    bookingId: e.booking_id,
+    itemName: e.item_name,
+    rate: e.rate,
+    qty: e.qty,
+    createdAt: e.created_at,
+  };
+}
+
 function toBooking(b: BookingRow) {
+  const extrasTotal = getExtrasTotal(b.id);
   return {
     id: b.id,
     guestName: b.guest_name,
@@ -29,6 +57,7 @@ function toBooking(b: BookingRow) {
     paymentMethod: b.payment_method,
     dueAmount: b.due_amount,
     checkedInBy: b.checked_in_by,
+    extrasTotal,
   };
 }
 
@@ -37,6 +66,56 @@ router.get("/bookings", (_req, res) => {
     "SELECT id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by FROM bookings ORDER BY check_in_time DESC"
   ).all() as BookingRow[];
   return res.json(bookings.map(toBooking));
+});
+
+// List extras for a booking
+router.get("/bookings/:id/extras", (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const booking = db.prepare("SELECT id FROM bookings WHERE id = ?").get(id);
+  if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+  const extras = db.prepare(
+    "SELECT id, booking_id, item_name, rate, qty, created_at FROM room_extras WHERE booking_id = ? ORDER BY created_at ASC"
+  ).all(id) as ExtraRow[];
+  return res.json(extras.map(toExtra));
+});
+
+// Add an extra to a booking
+router.post("/bookings/:id/extras", (req, res) => {
+  const authHeader = req.headers.authorization as string | undefined;
+  const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
+  if (!session) return res.status(401).json({ error: "Not authenticated" });
+
+  const id = parseInt(req.params.id, 10);
+  const booking = db.prepare("SELECT id FROM bookings WHERE id = ?").get(id);
+  if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+  const { itemName, rate, qty } = req.body as { itemName: string; rate: number; qty?: number };
+  if (!itemName?.trim()) return res.status(400).json({ error: "Item name is required" });
+  if (!rate || Number(rate) <= 0) return res.status(400).json({ error: "Rate must be greater than 0" });
+
+  const result = db.prepare(
+    "INSERT INTO room_extras (booking_id, item_name, rate, qty) VALUES (?, ?, ?, ?)"
+  ).run(id, itemName.trim(), Number(rate), Math.max(1, Number(qty) || 1)) as { lastInsertRowid: number };
+
+  const extra = db.prepare("SELECT * FROM room_extras WHERE id = ?").get(result.lastInsertRowid) as ExtraRow;
+  return res.status(201).json(toExtra(extra));
+});
+
+// Delete an extra
+router.delete("/bookings/:id/extras/:extraId", (req, res) => {
+  const authHeader = req.headers.authorization as string | undefined;
+  const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
+  if (!session) return res.status(401).json({ error: "Not authenticated" });
+
+  const id = parseInt(req.params.id, 10);
+  const extraId = parseInt(req.params.extraId, 10);
+
+  const extra = db.prepare("SELECT id FROM room_extras WHERE id = ? AND booking_id = ?").get(extraId, id);
+  if (!extra) return res.status(404).json({ error: "Extra not found" });
+
+  db.prepare("DELETE FROM room_extras WHERE id = ?").run(extraId);
+  return res.json({ success: true, message: "Extra removed" });
 });
 
 router.post("/bookings", (req, res) => {
@@ -58,7 +137,6 @@ router.post("/bookings", (req, res) => {
     return res.status(400).json({ error: `Room ${roomNumber} is already occupied` });
   }
 
-  // If room was dirty, remove from dirty list (it's being checked in)
   db.prepare("DELETE FROM dirty_rooms WHERE room_number = ?").run(roomNumber);
 
   const checkInTime = new Date().toISOString();
@@ -120,7 +198,6 @@ router.delete("/bookings/:id", (req, res) => {
   if (!booking) return res.status(404).json({ error: "Booking not found" });
 
   db.prepare("DELETE FROM bookings WHERE id = ?").run(id);
-  // Mark as dirty when admin deletes an active booking
   db.prepare("INSERT OR REPLACE INTO dirty_rooms (room_number) VALUES (?)").run(booking.room_number);
   return res.json({ success: true, message: "Booking deleted" });
 });
@@ -136,6 +213,7 @@ router.post("/bookings/:id/checkout", (req, res) => {
   const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
   if (!booking) return res.status(404).json({ error: "Booking not found" });
 
+  const extrasTotal = getExtrasTotal(id);
   const checkOutTime = new Date().toISOString();
   const duePaid = Number(dueAmountPaid) || 0;
   const totalPaid = booking.amount_paid + duePaid;
@@ -145,7 +223,7 @@ router.post("/bookings/:id/checkout", (req, res) => {
     check_in_time: string; check_out_time: string; room_amount: number;
     amount_paid_at_checkin: number; payment_method_at_checkin: string;
     due_amount_paid_at_checkout: number; due_payment_method_at_checkout: string;
-    total_paid: number; checked_in_by: string; checked_out_by: string;
+    total_paid: number; checked_in_by: string; checked_out_by: string; extras_total: number;
   };
 
   const result = db
@@ -154,20 +232,18 @@ router.post("/bookings/:id/checkout", (req, res) => {
        (guest_name, phone, room_number, check_in_time, check_out_time,
         room_amount, amount_paid_at_checkin, payment_method_at_checkin,
         due_amount_paid_at_checkout, due_payment_method_at_checkout, total_paid,
-        checked_in_by, checked_out_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        checked_in_by, checked_out_by, extras_total)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       booking.guest_name, booking.phone, booking.room_number,
       booking.check_in_time, checkOutTime,
       booking.room_amount, booking.amount_paid, booking.payment_method,
       duePaid, duePaymentMethod || "Cash", totalPaid,
-      booking.checked_in_by, session.username
+      booking.checked_in_by, session.username, extrasTotal
     ) as { lastInsertRowid: number };
 
   db.prepare("DELETE FROM bookings WHERE id = ?").run(id);
-
-  // Mark room as dirty after checkout
   db.prepare("INSERT OR REPLACE INTO dirty_rooms (room_number) VALUES (?)").run(booking.room_number);
 
   const record = db.prepare("SELECT * FROM history WHERE id = ?").get(result.lastInsertRowid) as HistoryRow;
@@ -187,6 +263,7 @@ router.post("/bookings/:id/checkout", (req, res) => {
     totalPaid: record.total_paid,
     checkedInBy: record.checked_in_by,
     checkedOutBy: record.checked_out_by,
+    extrasTotal: record.extras_total,
   });
 });
 

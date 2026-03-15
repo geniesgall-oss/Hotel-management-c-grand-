@@ -54,6 +54,7 @@ export const GetRoomsResponseItem = zod.object({
       paymentMethod: zod.string(),
       dueAmount: zod.number(),
       checkedInBy: zod.string(),
+      extrasTotal: zod.number(),
     })
     .nullish(),
 });
@@ -79,6 +80,7 @@ export const GetBookingsResponseItem = zod.object({
   paymentMethod: zod.string(),
   dueAmount: zod.number(),
   checkedInBy: zod.string(),
+  extrasTotal: zod.number(),
 });
 export const GetBookingsResponse = zod.array(GetBookingsResponseItem);
 
@@ -114,6 +116,7 @@ export const UpdateBookingResponse = zod.object({
   paymentMethod: zod.string(),
   dueAmount: zod.number(),
   checkedInBy: zod.string(),
+  extrasTotal: zod.number(),
 });
 
 export const DeleteBookingParams = zod.object({
@@ -121,6 +124,40 @@ export const DeleteBookingParams = zod.object({
 });
 
 export const DeleteBookingResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
+
+export const GetBookingExtrasParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetBookingExtrasResponseItem = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  itemName: zod.string(),
+  rate: zod.number(),
+  qty: zod.number(),
+  createdAt: zod.string(),
+});
+export const GetBookingExtrasResponse = zod.array(GetBookingExtrasResponseItem);
+
+export const AddBookingExtraParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddBookingExtraBody = zod.object({
+  itemName: zod.string(),
+  rate: zod.number(),
+  qty: zod.number().optional(),
+});
+
+export const DeleteBookingExtraParams = zod.object({
+  id: zod.coerce.number(),
+  extraId: zod.coerce.number(),
+});
+
+export const DeleteBookingExtraResponse = zod.object({
   success: zod.boolean(),
   message: zod.string().optional(),
 });
@@ -149,6 +186,7 @@ export const CheckoutBookingResponse = zod.object({
   totalPaid: zod.number(),
   checkedInBy: zod.string(),
   checkedOutBy: zod.string(),
+  extrasTotal: zod.number(),
 });
 
 export const GetHistoryResponseItem = zod.object({
@@ -166,6 +204,7 @@ export const GetHistoryResponseItem = zod.object({
   totalPaid: zod.number(),
   checkedInBy: zod.string(),
   checkedOutBy: zod.string(),
+  extrasTotal: zod.number(),
 });
 export const GetHistoryResponse = zod.array(GetHistoryResponseItem);
 
@@ -197,6 +236,7 @@ export const UpdateHistoryResponse = zod.object({
   totalPaid: zod.number(),
   checkedInBy: zod.string(),
   checkedOutBy: zod.string(),
+  extrasTotal: zod.number(),
 });
 
 export const DeleteHistoryParams = zod.object({

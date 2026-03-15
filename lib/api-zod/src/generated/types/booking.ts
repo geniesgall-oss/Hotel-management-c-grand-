@@ -17,4 +17,5 @@ export interface Booking {
   paymentMethod: string;
   dueAmount: number;
   checkedInBy: string;
+  extrasTotal: number;
 }

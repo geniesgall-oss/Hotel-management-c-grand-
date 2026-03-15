@@ -21,4 +21,5 @@ export interface HistoryRecord {
   totalPaid: number;
   checkedInBy: string;
   checkedOutBy: string;
+  extrasTotal: number;
 }

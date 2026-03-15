@@ -64,6 +64,15 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS dirty_rooms (
     room_number TEXT PRIMARY KEY
   );
+
+  CREATE TABLE IF NOT EXISTS room_extras (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    item_name TEXT NOT NULL,
+    rate REAL NOT NULL DEFAULT 0,
+    qty INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // Migrate bookings columns
@@ -84,6 +93,7 @@ if (!historyColumns.includes("due_payment_method_at_checkout")) db.exec("ALTER T
 if (!historyColumns.includes("total_paid"))                     db.exec("ALTER TABLE history ADD COLUMN total_paid REAL NOT NULL DEFAULT 0");
 if (!historyColumns.includes("checked_in_by"))                  db.exec("ALTER TABLE history ADD COLUMN checked_in_by TEXT NOT NULL DEFAULT ''");
 if (!historyColumns.includes("checked_out_by"))                 db.exec("ALTER TABLE history ADD COLUMN checked_out_by TEXT NOT NULL DEFAULT ''");
+if (!historyColumns.includes("extras_total"))                   db.exec("ALTER TABLE history ADD COLUMN extras_total REAL NOT NULL DEFAULT 0");
 
 // Remove old default admin/staff if they exist
 const oldAdmin = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();

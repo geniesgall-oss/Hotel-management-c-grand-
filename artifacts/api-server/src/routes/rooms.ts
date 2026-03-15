@@ -47,6 +47,7 @@ router.get("/rooms", (_req, res) => {
             paymentMethod: booking.payment_method,
             dueAmount: booking.due_amount,
             checkedInBy: booking.checked_in_by,
+            extrasTotal: ((db.prepare("SELECT COALESCE(SUM(rate * qty), 0) as total FROM room_extras WHERE booking_id = ?").get(booking.id) as { total: number }).total) || 0,
           }
         : null,
     };

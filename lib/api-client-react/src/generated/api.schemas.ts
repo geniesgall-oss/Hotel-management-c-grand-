@@ -61,6 +61,7 @@ export interface Booking {
   paymentMethod: string;
   dueAmount: number;
   checkedInBy: string;
+  extrasTotal: number;
 }
 
 export interface Room {
@@ -68,6 +69,21 @@ export interface Room {
   number: string;
   status: RoomStatus;
   currentBooking?: Booking | null;
+}
+
+export interface RoomExtra {
+  id: number;
+  bookingId: number;
+  itemName: string;
+  rate: number;
+  qty: number;
+  createdAt: string;
+}
+
+export interface AddExtraRequest {
+  itemName: string;
+  rate: number;
+  qty?: number;
 }
 
 export interface CreateBookingRequest {
@@ -116,6 +132,7 @@ export interface HistoryRecord {
   totalPaid: number;
   checkedInBy: string;
   checkedOutBy: string;
+  extrasTotal: number;
 }
 
 export interface MonthlyReportRow {

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./addExtraRequest";
 export * from "./booking";
 export * from "./checkoutRequest";
 export * from "./createBookingRequest";
@@ -18,6 +19,7 @@ export * from "./loginResponse";
 export * from "./monthlyReport";
 export * from "./monthlyReportRow";
 export * from "./room";
+export * from "./roomExtra";
 export * from "./roomStatus";
 export * from "./successResponse";
 export * from "./updateBookingRequest";

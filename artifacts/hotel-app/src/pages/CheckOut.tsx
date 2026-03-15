@@ -1,43 +1,171 @@
 import { useState } from "react"
-import { useGetBookings, useCheckoutBooking } from "@workspace/api-client-react"
+import {
+  useGetBookings, useCheckoutBooking,
+  useGetBookingExtras, getGetBookingExtrasQueryKey,
+} from "@workspace/api-client-react"
 import type { Booking } from "@workspace/api-client-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { LogOut, CalendarClock, User, Hash, IndianRupee, CreditCard, AlertCircle } from "lucide-react"
+import { LogOut, CalendarClock, User, Hash, IndianRupee, CreditCard, AlertCircle, ShoppingBag } from "lucide-react"
 import { format } from "date-fns"
 
 const PAYMENT_METHODS = ["Cash", "PhonePe", "GPay", "Card"] as const
 type PaymentMethod = typeof PAYMENT_METHODS[number]
 
-export default function CheckOut() {
-  const queryClient = useQueryClient()
-  const { data: bookings, isLoading } = useGetBookings()
+function CheckoutModal({
+  booking,
+  onClose,
+  onDone,
+}: {
+  booking: Booking
+  onClose: () => void
+  onDone: () => void
+}) {
   const checkoutBooking = useCheckoutBooking()
-
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [duePaymentMethod, setDuePaymentMethod] = useState<PaymentMethod>("Cash")
 
+  const { data: extras } = useGetBookingExtras(booking.id, {
+    query: { queryKey: getGetBookingExtrasQueryKey(booking.id) }
+  })
+
+  const extrasTotal = (extras ?? []).reduce((sum, e) => sum + e.rate * e.qty, 0)
+  const grandTotal = booking.roomAmount + extrasTotal
+  const totalDue = Math.max(0, grandTotal - booking.amountPaid)
+
   const handleCheckout = async () => {
-    if (!selectedBooking) return
     try {
       await checkoutBooking.mutateAsync({
-        id: selectedBooking.id,
+        id: booking.id,
         data: {
           duePaymentMethod,
-          dueAmountPaid: selectedBooking.dueAmount,
+          dueAmountPaid: totalDue,
         },
       })
-      toast.success(`${selectedBooking.guestName} checked out from ${selectedBooking.roomNumber}`)
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
-      queryClient.invalidateQueries({ queryKey: ["/api/history"] })
-      setSelectedBooking(null)
-      setDuePaymentMethod("Cash")
+      toast.success(`${booking.guestName} checked out from ${booking.roomNumber}`)
+      onDone()
     } catch (error: any) {
       toast.error(error.message || "Failed to checkout")
     }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md p-6 space-y-5">
+        <div>
+          <h2 className="text-xl font-display font-bold text-foreground">Confirm Check-Out</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {booking.guestName} — Room {booking.roomNumber}
+          </p>
+        </div>
+
+        {/* Payment summary */}
+        <div className="rounded-xl border border-border/60 bg-secondary/20 p-4 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Room Amount</span>
+            <span className="font-semibold text-foreground">₹{booking.roomAmount?.toLocaleString("en-IN")}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Paid at Check-In ({booking.paymentMethod})</span>
+            <span className="font-semibold text-success">₹{booking.amountPaid?.toLocaleString("en-IN")}</span>
+          </div>
+
+          {/* Extras breakdown */}
+          {extras && extras.length > 0 && (
+            <>
+              <div className="border-t border-border/40 pt-2 mt-1 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <ShoppingBag className="h-3 w-3" /> Extras
+                </div>
+                {extras.map(extra => (
+                  <div key={extra.id} className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {extra.itemName} × {extra.qty}
+                    </span>
+                    <span className="font-medium text-foreground">
+                      ₹{(extra.rate * extra.qty).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between pt-1 text-sm font-semibold border-t border-border/30">
+                  <span className="text-foreground">Extras Subtotal</span>
+                  <span className="text-primary">₹{extrasTotal.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="border-t border-border/50 pt-2 space-y-1">
+            {extrasTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Grand Total</span>
+                <span className="font-semibold text-foreground">₹{grandTotal.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="font-semibold text-foreground">Due at Checkout</span>
+              <span className={`text-lg font-bold ${totalDue > 0 ? "text-destructive" : "text-success"}`}>
+                ₹{totalDue.toLocaleString("en-IN")}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {totalDue > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <CreditCard className="h-4 w-4 text-primary" />
+              How is the due amount being paid?
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PAYMENT_METHODS.map(method => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setDuePaymentMethod(method)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                    duePaymentMethod === method
+                      ? "bg-primary text-primary-foreground border-primary shadow-md"
+                      : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                  }`}
+                >
+                  {method === "PhonePe" ? "📱 PhonePe" : method === "GPay" ? "📲 GPay" : method === "Card" ? "💳 Card" : "💵 Cash"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-1">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={handleCheckout}
+            isLoading={checkoutBooking.isPending}
+          >
+            Confirm Check-Out
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function CheckOut() {
+  const queryClient = useQueryClient()
+  const { data: bookings, isLoading } = useGetBookings()
+
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
+
+  const handleDone = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
+    queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
+    queryClient.invalidateQueries({ queryKey: ["/api/history"] })
+    setSelectedBooking(null)
   }
 
   if (isLoading) {
@@ -97,6 +225,9 @@ export default function CheckOut() {
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Amount</p>
                       <p className="text-sm font-semibold text-foreground">₹{booking.roomAmount?.toLocaleString("en-IN")}</p>
+                      {(booking.extrasTotal ?? 0) > 0 && (
+                        <p className="text-xs text-primary font-medium">+₹{booking.extrasTotal?.toLocaleString("en-IN")} extras</p>
+                      )}
                       <p className="text-xs text-muted-foreground">Paid: ₹{booking.amountPaid?.toLocaleString("en-IN")} via {booking.paymentMethod}</p>
                     </div>
                   </div>
@@ -114,16 +245,16 @@ export default function CheckOut() {
 
                 <div className="px-5 pb-4 flex items-center justify-between border-t border-border/40 pt-3 gap-4">
                   <div className={`flex items-center gap-2 text-sm font-semibold ${
-                    (booking.dueAmount ?? 0) > 0 ? "text-destructive" : "text-success"
+                    ((booking.dueAmount ?? 0) + (booking.extrasTotal ?? 0)) > 0 ? "text-destructive" : "text-success"
                   }`}>
                     <AlertCircle className="h-4 w-4 shrink-0" />
-                    {(booking.dueAmount ?? 0) > 0
-                      ? `Due: ₹${booking.dueAmount?.toLocaleString("en-IN")}`
+                    {((booking.dueAmount ?? 0) + (booking.extrasTotal ?? 0)) > 0
+                      ? `Due: ₹${((booking.dueAmount ?? 0) + (booking.extrasTotal ?? 0)).toLocaleString("en-IN")}`
                       : "Fully Paid"}
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => { setSelectedBooking(booking); setDuePaymentMethod("Cash") }}
+                    onClick={() => setSelectedBooking(booking)}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     Check Out
@@ -135,75 +266,12 @@ export default function CheckOut() {
         </div>
       )}
 
-      {/* Checkout Modal */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedBooking(null)} />
-          <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md p-6 space-y-5">
-            <div>
-              <h2 className="text-xl font-display font-bold text-foreground">Confirm Check-Out</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                {selectedBooking.guestName} — Room {selectedBooking.roomNumber}
-              </p>
-            </div>
-
-            {/* Payment summary */}
-            <div className="rounded-xl border border-border/60 bg-secondary/20 p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Room Amount</span>
-                <span className="font-semibold text-foreground">₹{selectedBooking.roomAmount?.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Paid at Check-In ({selectedBooking.paymentMethod})</span>
-                <span className="font-semibold text-success">₹{selectedBooking.amountPaid?.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="border-t border-border/50 pt-2 flex justify-between">
-                <span className="font-semibold text-foreground">Due Amount</span>
-                <span className={`text-lg font-bold ${(selectedBooking.dueAmount ?? 0) > 0 ? "text-destructive" : "text-success"}`}>
-                  ₹{selectedBooking.dueAmount?.toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-
-            {(selectedBooking.dueAmount ?? 0) > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                  How is the due amount being paid?
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {PAYMENT_METHODS.map(method => (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => setDuePaymentMethod(method)}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                        duePaymentMethod === method
-                          ? "bg-primary text-primary-foreground border-primary shadow-md"
-                          : "bg-secondary/50 text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
-                      }`}
-                    >
-                      {method === "PhonePe" ? "📱 PhonePe" : method === "GPay" ? "📲 GPay" : method === "Card" ? "💳 Card" : "💵 Cash"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setSelectedBooking(null)}>
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleCheckout}
-                isLoading={checkoutBooking.isPending}
-              >
-                Confirm Check-Out
-              </Button>
-            </div>
-          </div>
-        </div>
+        <CheckoutModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onDone={handleDone}
+        />
       )}
     </div>
   )

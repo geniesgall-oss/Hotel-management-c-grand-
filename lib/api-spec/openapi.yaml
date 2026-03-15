@@ -10,6 +10,7 @@ tags:
   - name: auth
   - name: rooms
   - name: bookings
+  - name: extras
   - name: history
   - name: reports
 paths:
@@ -200,6 +201,95 @@ paths:
                 $ref: "#/components/schemas/SuccessResponse"
         "403":
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bookings/{id}/extras:
+    get:
+      operationId: getBookingExtras
+      tags: [extras]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of extras for a booking
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomExtra"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: addBookingExtra
+      tags: [extras]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddExtraRequest"
+      responses:
+        "201":
+          description: Extra added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomExtra"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bookings/{id}/extras/{extraId}:
+    delete:
+      operationId: deleteBookingExtra
+      tags: [extras]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: extraId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Extra removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Extra not found
           content:
             application/json:
               schema:
@@ -397,6 +487,34 @@ components:
           nullable: true
       required: [id, number, status]
 
+    RoomExtra:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        itemName:
+          type: string
+        rate:
+          type: number
+        qty:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, bookingId, itemName, rate, qty, createdAt]
+
+    AddExtraRequest:
+      type: object
+      properties:
+        itemName:
+          type: string
+        rate:
+          type: number
+        qty:
+          type: integer
+      required: [itemName, rate]
+
     Booking:
       type: object
       properties:
@@ -420,7 +538,9 @@ components:
           type: number
         checkedInBy:
           type: string
-      required: [id, guestName, phone, roomNumber, checkInTime, roomAmount, amountPaid, paymentMethod, dueAmount, checkedInBy]
+        extrasTotal:
+          type: number
+      required: [id, guestName, phone, roomNumber, checkInTime, roomAmount, amountPaid, paymentMethod, dueAmount, checkedInBy, extrasTotal]
 
     CreateBookingRequest:
       type: object
@@ -511,7 +631,9 @@ components:
           type: string
         checkedOutBy:
           type: string
-      required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, amountPaidAtCheckin, paymentMethodAtCheckin, dueAmountPaidAtCheckout, duePaymentMethodAtCheckout, totalPaid, checkedInBy, checkedOutBy]
+        extrasTotal:
+          type: number
+      required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, amountPaidAtCheckin, paymentMethodAtCheckin, dueAmountPaidAtCheckout, duePaymentMethodAtCheckout, totalPaid, checkedInBy, checkedOutBy, extrasTotal]
 
     MonthlyReportRow:
       type: object
