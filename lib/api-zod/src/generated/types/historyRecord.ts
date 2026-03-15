@@ -5,6 +5,7 @@
  * Hotel Management API
  * OpenAPI spec version: 0.1.0
  */
+import type { PaymentSplit } from "./paymentSplit";
 
 export interface HistoryRecord {
   id: number;
@@ -22,4 +23,5 @@ export interface HistoryRecord {
   checkedInBy: string;
   checkedOutBy: string;
   extrasTotal: number;
+  checkoutSplits: PaymentSplit[];
 }

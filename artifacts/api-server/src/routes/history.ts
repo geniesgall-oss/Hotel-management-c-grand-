@@ -10,6 +10,7 @@ type HistoryRow = {
   amount_paid_at_checkin: number; payment_method_at_checkin: string;
   due_amount_paid_at_checkout: number; due_payment_method_at_checkout: string;
   total_paid: number; checked_in_by: string; checked_out_by: string;
+  extras_total?: number; checkout_splits?: string;
 };
 
 function toRecord(r: HistoryRow) {
@@ -28,6 +29,8 @@ function toRecord(r: HistoryRow) {
     totalPaid: r.total_paid,
     checkedInBy: r.checked_in_by || "—",
     checkedOutBy: r.checked_out_by || "—",
+    extrasTotal: r.extras_total ?? 0,
+    checkoutSplits: JSON.parse(r.checkout_splits || "[]"),
   };
 }
 

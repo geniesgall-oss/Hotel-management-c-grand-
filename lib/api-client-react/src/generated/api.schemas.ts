@@ -103,9 +103,13 @@ export interface UpdateBookingRequest {
   paymentMethod: string;
 }
 
+export interface PaymentSplit {
+  method: string;
+  amount: number;
+}
+
 export interface CheckoutRequest {
-  duePaymentMethod: string;
-  dueAmountPaid: number;
+  paymentSplits: PaymentSplit[];
 }
 
 export interface UpdateHistoryRequest {
@@ -133,6 +137,7 @@ export interface HistoryRecord {
   checkedInBy: string;
   checkedOutBy: string;
   extrasTotal: number;
+  checkoutSplits: PaymentSplit[];
 }
 
 export interface MonthlyReportRow {

@@ -208,22 +208,37 @@ router.post("/bookings/:id/checkout", (req, res) => {
   if (!session) return res.status(401).json({ error: "Not authenticated" });
 
   const id = parseInt(req.params.id, 10);
-  const { duePaymentMethod, dueAmountPaid } = req.body as { duePaymentMethod: string; dueAmountPaid: number };
+  type PaymentSplit = { method: string; amount: number };
+  const { paymentSplits } = req.body as { paymentSplits: PaymentSplit[] };
 
   const booking = db.prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
   if (!booking) return res.status(404).json({ error: "Booking not found" });
 
   const extrasTotal = getExtrasTotal(id);
   const checkOutTime = new Date().toISOString();
-  const duePaid = Number(dueAmountPaid) || 0;
+
+  // Normalise splits — filter out zero-amount entries
+  const splits: PaymentSplit[] = Array.isArray(paymentSplits)
+    ? paymentSplits.filter(s => Number(s.amount) > 0).map(s => ({ method: s.method, amount: Number(s.amount) }))
+    : [];
+
+  const duePaid = splits.reduce((sum, s) => sum + s.amount, 0);
   const totalPaid = booking.amount_paid + duePaid;
+
+  // Determine the primary payment method label for display
+  const primaryMethod = splits.length === 1
+    ? splits[0].method
+    : splits.length > 1 ? "Multiple" : "Cash";
+
+  const splitsJson = JSON.stringify(splits);
 
   type HistoryRow = {
     id: number; guest_name: string; phone: string; room_number: string;
     check_in_time: string; check_out_time: string; room_amount: number;
     amount_paid_at_checkin: number; payment_method_at_checkin: string;
     due_amount_paid_at_checkout: number; due_payment_method_at_checkout: string;
-    total_paid: number; checked_in_by: string; checked_out_by: string; extras_total: number;
+    total_paid: number; checked_in_by: string; checked_out_by: string;
+    extras_total: number; checkout_splits: string;
   };
 
   const result = db
@@ -232,15 +247,15 @@ router.post("/bookings/:id/checkout", (req, res) => {
        (guest_name, phone, room_number, check_in_time, check_out_time,
         room_amount, amount_paid_at_checkin, payment_method_at_checkin,
         due_amount_paid_at_checkout, due_payment_method_at_checkout, total_paid,
-        checked_in_by, checked_out_by, extras_total)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        checked_in_by, checked_out_by, extras_total, checkout_splits)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       booking.guest_name, booking.phone, booking.room_number,
       booking.check_in_time, checkOutTime,
       booking.room_amount, booking.amount_paid, booking.payment_method,
-      duePaid, duePaymentMethod || "Cash", totalPaid,
-      booking.checked_in_by, session.username, extrasTotal
+      duePaid, primaryMethod, totalPaid,
+      booking.checked_in_by, session.username, extrasTotal, splitsJson
     ) as { lastInsertRowid: number };
 
   db.prepare("DELETE FROM bookings WHERE id = ?").run(id);
@@ -264,6 +279,7 @@ router.post("/bookings/:id/checkout", (req, res) => {
     checkedInBy: record.checked_in_by,
     checkedOutBy: record.checked_out_by,
     extrasTotal: record.extras_total,
+    checkoutSplits: JSON.parse(record.checkout_splits || "[]"),
   });
 });
 

@@ -18,6 +18,7 @@ export * from "./loginRequest";
 export * from "./loginResponse";
 export * from "./monthlyReport";
 export * from "./monthlyReportRow";
+export * from "./paymentSplit";
 export * from "./room";
 export * from "./roomExtra";
 export * from "./roomStatus";

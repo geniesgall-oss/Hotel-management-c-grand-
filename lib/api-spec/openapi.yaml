@@ -574,14 +574,23 @@ components:
           type: string
       required: [guestName, phone, roomAmount, amountPaid, paymentMethod]
 
+    PaymentSplit:
+      type: object
+      properties:
+        method:
+          type: string
+        amount:
+          type: number
+      required: [method, amount]
+
     CheckoutRequest:
       type: object
       properties:
-        duePaymentMethod:
-          type: string
-        dueAmountPaid:
-          type: number
-      required: [duePaymentMethod, dueAmountPaid]
+        paymentSplits:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentSplit"
+      required: [paymentSplits]
 
     UpdateHistoryRequest:
       type: object
@@ -633,7 +642,11 @@ components:
           type: string
         extrasTotal:
           type: number
-      required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, amountPaidAtCheckin, paymentMethodAtCheckin, dueAmountPaidAtCheckout, duePaymentMethodAtCheckout, totalPaid, checkedInBy, checkedOutBy, extrasTotal]
+        checkoutSplits:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentSplit"
+      required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, amountPaidAtCheckin, paymentMethodAtCheckin, dueAmountPaidAtCheckout, duePaymentMethodAtCheckout, totalPaid, checkedInBy, checkedOutBy, extrasTotal, checkoutSplits]
 
     MonthlyReportRow:
       type: object

@@ -167,8 +167,12 @@ export const CheckoutBookingParams = zod.object({
 });
 
 export const CheckoutBookingBody = zod.object({
-  duePaymentMethod: zod.string(),
-  dueAmountPaid: zod.number(),
+  paymentSplits: zod.array(
+    zod.object({
+      method: zod.string(),
+      amount: zod.number(),
+    }),
+  ),
 });
 
 export const CheckoutBookingResponse = zod.object({
@@ -187,6 +191,12 @@ export const CheckoutBookingResponse = zod.object({
   checkedInBy: zod.string(),
   checkedOutBy: zod.string(),
   extrasTotal: zod.number(),
+  checkoutSplits: zod.array(
+    zod.object({
+      method: zod.string(),
+      amount: zod.number(),
+    }),
+  ),
 });
 
 export const GetHistoryResponseItem = zod.object({
@@ -205,6 +215,12 @@ export const GetHistoryResponseItem = zod.object({
   checkedInBy: zod.string(),
   checkedOutBy: zod.string(),
   extrasTotal: zod.number(),
+  checkoutSplits: zod.array(
+    zod.object({
+      method: zod.string(),
+      amount: zod.number(),
+    }),
+  ),
 });
 export const GetHistoryResponse = zod.array(GetHistoryResponseItem);
 
@@ -237,6 +253,12 @@ export const UpdateHistoryResponse = zod.object({
   checkedInBy: zod.string(),
   checkedOutBy: zod.string(),
   extrasTotal: zod.number(),
+  checkoutSplits: zod.array(
+    zod.object({
+      method: zod.string(),
+      amount: zod.number(),
+    }),
+  ),
 });
 
 export const DeleteHistoryParams = zod.object({

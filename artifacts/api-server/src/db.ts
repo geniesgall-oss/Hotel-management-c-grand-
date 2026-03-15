@@ -94,6 +94,7 @@ if (!historyColumns.includes("total_paid"))                     db.exec("ALTER T
 if (!historyColumns.includes("checked_in_by"))                  db.exec("ALTER TABLE history ADD COLUMN checked_in_by TEXT NOT NULL DEFAULT ''");
 if (!historyColumns.includes("checked_out_by"))                 db.exec("ALTER TABLE history ADD COLUMN checked_out_by TEXT NOT NULL DEFAULT ''");
 if (!historyColumns.includes("extras_total"))                   db.exec("ALTER TABLE history ADD COLUMN extras_total REAL NOT NULL DEFAULT 0");
+if (!historyColumns.includes("checkout_splits"))                db.exec("ALTER TABLE history ADD COLUMN checkout_splits TEXT NOT NULL DEFAULT '[]'");
 
 // Remove old default admin/staff if they exist
 const oldAdmin = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();

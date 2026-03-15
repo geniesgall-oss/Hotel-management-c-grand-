@@ -5,8 +5,8 @@
  * Hotel Management API
  * OpenAPI spec version: 0.1.0
  */
-import type { PaymentSplit } from "./paymentSplit";
 
-export interface CheckoutRequest {
-  paymentSplits: PaymentSplit[];
+export interface PaymentSplit {
+  method: string;
+  amount: number;
 }

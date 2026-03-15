@@ -43,6 +43,10 @@ function ExtrasModal({ booking, onClose }: { booking: Booking; onClose: () => vo
 
   const extrasTotal = (extras ?? []).reduce((sum, e) => sum + e.rate * e.qty, 0)
 
+  const PREBUILT_ITEMS = [
+    "1L Water Bottle", "Coke", "Pepsi", "Kinley", "Soda", "Sprite",
+  ]
+
   const handleAdd = async () => {
     if (!itemName.trim()) { toast.error("Enter an item name"); return }
     const rateNum = Number(rate)
@@ -143,12 +147,31 @@ function ExtrasModal({ booking, onClose }: { booking: Booking; onClose: () => vo
           {/* Add new extra form */}
           <div className="pt-2 border-t border-border/50 space-y-3">
             <p className="text-sm font-semibold text-foreground">Add Item</p>
+
+            {/* Prebuilt quick-select */}
+            <div className="flex flex-wrap gap-1.5">
+              {PREBUILT_ITEMS.map(item => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setItemName(item)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                    itemName === item
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary/60 text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-2">
               <input
                 value={itemName}
                 onChange={e => setItemName(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleAdd()}
-                placeholder="Item name (e.g. Water Bottle, Coke)"
+                placeholder="Or type a custom item name…"
                 className="flex h-10 w-full rounded-xl border border-border bg-input/50 px-3.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <div className="grid grid-cols-2 gap-2">
