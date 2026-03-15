@@ -55,6 +55,8 @@ export const GetRoomsResponseItem = zod.object({
       dueAmount: zod.number(),
       checkedInBy: zod.string(),
       extrasTotal: zod.number(),
+      stayHours: zod.number(),
+      autoChargesPosted: zod.number(),
     })
     .nullish(),
 });
@@ -81,6 +83,8 @@ export const GetBookingsResponseItem = zod.object({
   dueAmount: zod.number(),
   checkedInBy: zod.string(),
   extrasTotal: zod.number(),
+  stayHours: zod.number(),
+  autoChargesPosted: zod.number(),
 });
 export const GetBookingsResponse = zod.array(GetBookingsResponseItem);
 
@@ -91,6 +95,7 @@ export const CreateBookingBody = zod.object({
   roomAmount: zod.number(),
   amountPaid: zod.number(),
   paymentMethod: zod.string(),
+  stayHours: zod.number().optional(),
 });
 
 export const UpdateBookingParams = zod.object({
@@ -117,6 +122,8 @@ export const UpdateBookingResponse = zod.object({
   dueAmount: zod.number(),
   checkedInBy: zod.string(),
   extrasTotal: zod.number(),
+  stayHours: zod.number(),
+  autoChargesPosted: zod.number(),
 });
 
 export const DeleteBookingParams = zod.object({
@@ -139,6 +146,7 @@ export const GetBookingExtrasResponseItem = zod.object({
   rate: zod.number(),
   qty: zod.number(),
   createdAt: zod.string(),
+  isAutoCharge: zod.boolean(),
 });
 export const GetBookingExtrasResponse = zod.array(GetBookingExtrasResponseItem);
 

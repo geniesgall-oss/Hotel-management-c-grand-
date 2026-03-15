@@ -9,14 +9,19 @@ const ALL_ROOMS = ["LV1","LV2","LV3","LV4","LV5","LV6","LV7","LV8","LV9","LV10",
 router.get("/rooms", async (_req, res) => {
   try {
     const { rows: bookingRows } = await pool.query(
-      "SELECT id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by FROM bookings"
+      "SELECT id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by, stay_hours, auto_charges_posted FROM bookings"
     );
 
     const { rows: dirtyRows } = await pool.query("SELECT room_number FROM dirty_rooms");
     const dirtySet = new Set(dirtyRows.map((r: { room_number: string }) => r.room_number));
 
     const occupiedMap = new Map(
-      bookingRows.map((b: { room_number: string }) => [b.room_number, b])
+      bookingRows.map((b: { room_number: string }) => [b.room_number, b as {
+        id: number; guest_name: string; phone: string; room_number: string;
+        check_in_time: string; room_amount: number; amount_paid: number;
+        payment_method: string; due_amount: number; checked_in_by: string;
+        stay_hours: number; auto_charges_posted: number;
+      }])
     );
 
     // Fetch extras totals for all occupied bookings in one query
@@ -67,6 +72,8 @@ router.get("/rooms", async (_req, res) => {
               dueAmount: Number(booking.due_amount),
               checkedInBy: booking.checked_in_by,
               extrasTotal: extrasTotals.get(booking.id) ?? 0,
+              stayHours: Number(booking.stay_hours),
+              autoChargesPosted: Number(booking.auto_charges_posted),
             }
           : null,
       };

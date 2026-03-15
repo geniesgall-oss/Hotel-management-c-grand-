@@ -502,7 +502,9 @@ components:
           type: integer
         createdAt:
           type: string
-      required: [id, bookingId, itemName, rate, qty, createdAt]
+        isAutoCharge:
+          type: boolean
+      required: [id, bookingId, itemName, rate, qty, createdAt, isAutoCharge]
 
     AddExtraRequest:
       type: object
@@ -540,7 +542,11 @@ components:
           type: string
         extrasTotal:
           type: number
-      required: [id, guestName, phone, roomNumber, checkInTime, roomAmount, amountPaid, paymentMethod, dueAmount, checkedInBy, extrasTotal]
+        stayHours:
+          type: integer
+        autoChargesPosted:
+          type: integer
+      required: [id, guestName, phone, roomNumber, checkInTime, roomAmount, amountPaid, paymentMethod, dueAmount, checkedInBy, extrasTotal, stayHours, autoChargesPosted]
 
     CreateBookingRequest:
       type: object
@@ -557,6 +563,8 @@ components:
           type: number
         paymentMethod:
           type: string
+        stayHours:
+          type: integer
       required: [guestName, phone, roomNumber, roomAmount, amountPaid, paymentMethod]
 
     UpdateBookingRequest:

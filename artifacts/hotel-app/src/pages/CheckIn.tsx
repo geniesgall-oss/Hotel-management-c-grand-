@@ -11,9 +11,11 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useLocation } from "wouter"
 import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
-import { UserPlus, Clock, IndianRupee, CreditCard, CheckCircle2 } from "lucide-react"
+import { UserPlus, Clock, IndianRupee, CreditCard, CheckCircle2, Timer } from "lucide-react"
+import { format } from "date-fns"
 
 const PAYMENT_METHODS = ["Cash", "PhonePe", "GPay", "Card"] as const
+const STAY_HOUR_OPTIONS = [12, 24, 36, 48] as const
 
 const checkInSchema = z.object({
   guestName: z.string().min(2, "Guest name must be at least 2 characters"),
@@ -28,6 +30,7 @@ const checkInSchema = z.object({
     .number({ invalid_type_error: "Enter a valid amount" })
     .min(0, "Amount paid cannot be negative"),
   paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: "Select a payment method" }) }),
+  stayHours: z.number().int().min(1),
 }).refine(d => d.amountPaid <= d.roomAmount, {
   message: "Amount paid cannot exceed room amount",
   path: ["amountPaid"],
@@ -54,13 +57,16 @@ export default function CheckIn() {
 
   const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<CheckInForm>({
     resolver: zodResolver(checkInSchema),
-    defaultValues: { paymentMethod: "Cash", amountPaid: 0 },
+    defaultValues: { paymentMethod: "Cash", amountPaid: 0, stayHours: 24 },
   })
 
   const roomAmount = watch("roomAmount") || 0
   const amountPaid = watch("amountPaid") || 0
   const selectedPaymentMethod = watch("paymentMethod")
+  const stayHours = watch("stayHours") || 24
   const dueAmount = Math.max(0, Number(roomAmount) - Number(amountPaid))
+
+  const checkoutEstimate = new Date(currentTime.getTime() + stayHours * 60 * 60 * 1000)
 
   const availableRooms = rooms?.filter(r => r.status === "available") || []
 
@@ -69,7 +75,7 @@ export default function CheckIn() {
       const result = await createBooking.mutateAsync({ data: { ...data, phone: `+91${data.phone}` } })
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] })
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] })
-      reset({ paymentMethod: "Cash", amountPaid: 0 })
+      reset({ paymentMethod: "Cash", amountPaid: 0, stayHours: 24 })
       setShowSuccess(true)
       toast.success(`${data.guestName} checked into ${data.roomNumber}!`)
       // Brief success flash, then navigate to overview
@@ -257,6 +263,36 @@ export default function CheckIn() {
                     ))}
                   </div>
                   {errors.paymentMethod && <p className="text-xs text-destructive">{errors.paymentMethod.message}</p>}
+                </div>
+
+                {/* Stay duration selector */}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    <Timer className="h-3.5 w-3.5" />
+                    Stay Duration
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {STAY_HOUR_OPTIONS.map(h => (
+                      <motion.button
+                        key={h}
+                        type="button"
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setValue("stayHours", h)}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                          stayHours === h
+                            ? "bg-primary text-primary-foreground border-primary shadow-md"
+                            : "bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                        }`}
+                      >
+                        {h}h
+                      </motion.button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Next day charge auto-posts after{" "}
+                    <span className="font-semibold text-foreground">{stayHours} hours</span>
+                    {" "}— by <span className="font-semibold text-foreground">{format(checkoutEstimate, "dd MMM, hh:mm a")}</span>
+                  </p>
                 </div>
 
                 {/* Due amount display */}

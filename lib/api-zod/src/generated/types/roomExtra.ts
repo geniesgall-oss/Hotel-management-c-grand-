@@ -13,4 +13,5 @@ export interface RoomExtra {
   rate: number;
   qty: number;
   createdAt: string;
+  isAutoCharge: boolean;
 }

@@ -18,4 +18,6 @@ export interface Booking {
   dueAmount: number;
   checkedInBy: string;
   extrasTotal: number;
+  stayHours: number;
+  autoChargesPosted: number;
 }

@@ -62,6 +62,8 @@ export interface Booking {
   dueAmount: number;
   checkedInBy: string;
   extrasTotal: number;
+  stayHours: number;
+  autoChargesPosted: number;
 }
 
 export interface Room {
@@ -78,6 +80,7 @@ export interface RoomExtra {
   rate: number;
   qty: number;
   createdAt: string;
+  isAutoCharge: boolean;
 }
 
 export interface AddExtraRequest {
@@ -93,6 +96,7 @@ export interface CreateBookingRequest {
   roomAmount: number;
   amountPaid: number;
   paymentMethod: string;
+  stayHours?: number;
 }
 
 export interface UpdateBookingRequest {

@@ -15,6 +15,8 @@ type BookingRow = {
   payment_method: string;
   due_amount: number;
   checked_in_by: string;
+  stay_hours: number;
+  auto_charges_posted: number;
 };
 
 type ExtraRow = {
@@ -24,6 +26,7 @@ type ExtraRow = {
   rate: number;
   qty: number;
   created_at: string;
+  is_auto_charge: boolean;
 };
 
 async function getExtrasTotal(bookingId: number): Promise<number> {
@@ -42,6 +45,7 @@ function toExtra(e: ExtraRow) {
     rate: Number(e.rate),
     qty: Number(e.qty),
     createdAt: e.created_at,
+    isAutoCharge: Boolean(e.is_auto_charge),
   };
 }
 
@@ -59,13 +63,21 @@ async function toBooking(b: BookingRow) {
     dueAmount: Number(b.due_amount),
     checkedInBy: b.checked_in_by,
     extrasTotal,
+    stayHours: Number(b.stay_hours),
+    autoChargesPosted: Number(b.auto_charges_posted),
   };
 }
+
+const BOOKING_SELECT = `
+  id, guest_name, phone, room_number, check_in_time,
+  room_amount, amount_paid, payment_method, due_amount, checked_in_by,
+  stay_hours, auto_charges_posted
+`;
 
 router.get("/bookings", async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by FROM bookings ORDER BY check_in_time DESC"
+      `SELECT ${BOOKING_SELECT} FROM bookings ORDER BY check_in_time DESC`
     );
     const bookings = await Promise.all((rows as BookingRow[]).map(toBooking));
     return res.json(bookings);
@@ -82,7 +94,7 @@ router.get("/bookings/:id/extras", async (req, res) => {
     if (found.length === 0) return res.status(404).json({ error: "Booking not found" });
 
     const { rows } = await pool.query(
-      "SELECT id, booking_id, item_name, rate, qty, created_at FROM room_extras WHERE booking_id = $1 ORDER BY created_at ASC",
+      "SELECT id, booking_id, item_name, rate, qty, created_at, is_auto_charge FROM room_extras WHERE booking_id = $1 ORDER BY created_at ASC",
       [id]
     );
     return res.json((rows as ExtraRow[]).map(toExtra));
@@ -109,7 +121,9 @@ router.post("/bookings/:id/extras", async (req, res) => {
 
     const now = new Date().toISOString();
     const { rows } = await pool.query(
-      "INSERT INTO room_extras (booking_id, item_name, rate, qty, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, booking_id, item_name, rate, qty, created_at",
+      `INSERT INTO room_extras (booking_id, item_name, rate, qty, created_at, is_auto_charge)
+       VALUES ($1, $2, $3, $4, $5, FALSE)
+       RETURNING id, booking_id, item_name, rate, qty, created_at, is_auto_charge`,
       [id, itemName.trim(), Number(rate), Math.max(1, Number(qty) || 1), now]
     );
     return res.status(201).json(toExtra(rows[0] as ExtraRow));
@@ -129,12 +143,27 @@ router.delete("/bookings/:id/extras/:extraId", async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      "SELECT id FROM room_extras WHERE id = $1 AND booking_id = $2",
+      "SELECT id, is_auto_charge FROM room_extras WHERE id = $1 AND booking_id = $2",
       [extraId, id]
     );
     if (rows.length === 0) return res.status(404).json({ error: "Extra not found" });
 
+    // Auto-posted charges can only be removed by an admin
+    if (rows[0].is_auto_charge && session.role !== "admin") {
+      return res.status(403).json({ error: "Only admins can remove auto-posted day charges" });
+    }
+
     await pool.query("DELETE FROM room_extras WHERE id = $1", [extraId]);
+
+    // If the deleted charge was an auto-charge, decrement the counter so
+    // the billing engine won't skip the next cycle.
+    if (rows[0].is_auto_charge) {
+      await pool.query(
+        "UPDATE bookings SET auto_charges_posted = GREATEST(0, auto_charges_posted - 1) WHERE id = $1",
+        [id]
+      );
+    }
+
     return res.json({ success: true, message: "Extra removed" });
   } catch (err) {
     console.error(err);
@@ -147,19 +176,21 @@ router.post("/bookings", async (req, res) => {
   const session = authHeader?.startsWith("Bearer ") ? getSession(authHeader.slice(7)) : null;
   if (!session) return res.status(401).json({ error: "Not authenticated" });
 
-  const { guestName, phone, roomNumber, roomAmount, amountPaid, paymentMethod } = req.body as {
+  const { guestName, phone, roomNumber, roomAmount, amountPaid, paymentMethod, stayHours } = req.body as {
     guestName: string; phone: string; roomNumber: string;
     roomAmount: number; amountPaid: number; paymentMethod: string;
+    stayHours?: number;
   };
 
   if (!guestName || !phone || !roomNumber) {
     return res.status(400).json({ error: "Guest name, phone, and room number are required" });
   }
 
+  const stayH = Math.max(1, Number(stayHours) || 24);
+
   try {
     const { rows: existing } = await pool.query(
-      "SELECT id FROM bookings WHERE room_number = $1",
-      [roomNumber]
+      "SELECT id FROM bookings WHERE room_number = $1", [roomNumber]
     );
     if (existing.length > 0) {
       return res.status(400).json({ error: `Room ${roomNumber} is already occupied` });
@@ -174,10 +205,12 @@ router.post("/bookings", async (req, res) => {
 
     const { rows } = await pool.query(
       `INSERT INTO bookings
-        (guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by`,
-      [guestName, phone, roomNumber, checkInTime, totalAmount, paid, paymentMethod || "Cash", due, session.username]
+        (guest_name, phone, room_number, check_in_time, room_amount, amount_paid,
+         payment_method, due_amount, checked_in_by, stay_hours, auto_charges_posted)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0)
+       RETURNING ${BOOKING_SELECT}`,
+      [guestName, phone, roomNumber, checkInTime, totalAmount, paid,
+       paymentMethod || "Cash", due, session.username, stayH]
     );
 
     return res.status(201).json(await toBooking(rows[0] as BookingRow));
@@ -204,10 +237,7 @@ router.put("/bookings/:id", async (req, res) => {
   }
 
   try {
-    const { rows: existing } = await pool.query(
-      "SELECT id FROM bookings WHERE id = $1",
-      [id]
-    );
+    const { rows: existing } = await pool.query("SELECT id FROM bookings WHERE id = $1", [id]);
     if (existing.length === 0) return res.status(404).json({ error: "Booking not found" });
 
     const totalAmount = Number(roomAmount) || 0;
@@ -218,7 +248,7 @@ router.put("/bookings/:id", async (req, res) => {
       `UPDATE bookings
        SET guest_name=$1, phone=$2, room_amount=$3, amount_paid=$4, payment_method=$5, due_amount=$6
        WHERE id=$7
-       RETURNING id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by`,
+       RETURNING ${BOOKING_SELECT}`,
       [guestName, phone, totalAmount, paid, paymentMethod || "Cash", due, id]
     );
 
@@ -238,10 +268,7 @@ router.delete("/bookings/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
 
   try {
-    const { rows } = await pool.query(
-      "SELECT room_number FROM bookings WHERE id = $1",
-      [id]
-    );
+    const { rows } = await pool.query("SELECT room_number FROM bookings WHERE id = $1", [id]);
     if (rows.length === 0) return res.status(404).json({ error: "Booking not found" });
 
     const roomNumber = rows[0].room_number as string;
@@ -268,8 +295,7 @@ router.post("/bookings/:id/checkout", async (req, res) => {
 
   try {
     const { rows: bookingRows } = await pool.query(
-      "SELECT id, guest_name, phone, room_number, check_in_time, room_amount, amount_paid, payment_method, due_amount, checked_in_by FROM bookings WHERE id = $1",
-      [id]
+      `SELECT ${BOOKING_SELECT} FROM bookings WHERE id = $1`, [id]
     );
     if (bookingRows.length === 0) return res.status(404).json({ error: "Booking not found" });
 

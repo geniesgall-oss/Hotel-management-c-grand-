@@ -15,7 +15,7 @@ import { motion, AnimatePresence, type Variants, type Easing } from "framer-moti
 import {
   DoorOpen, User, Phone, CalendarClock, IndianRupee, AlertCircle,
   Pencil, Trash2, X, Check, CreditCard, Sparkles, Wind,
-  ShoppingBag, Plus, Minus,
+  ShoppingBag, Plus, Minus, Timer, Zap,
 } from "lucide-react"
 import { format } from "date-fns"
 
@@ -31,6 +31,8 @@ const cardVariants: Variants = {
 
 function ExtrasModal({ booking, onClose }: { booking: Booking; onClose: () => void }) {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
   const { data: extras, isLoading } = useGetBookingExtras(booking.id, {
     query: { queryKey: getGetBookingExtrasQueryKey(booking.id) }
   })
@@ -110,9 +112,24 @@ function ExtrasModal({ booking, onClose }: { booking: Booking; onClose: () => vo
           ) : extras && extras.length > 0 ? (
             <div className="space-y-2">
               {extras.map(extra => (
-                <div key={extra.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-secondary/40 rounded-xl border border-border/50 group">
+                <div
+                  key={extra.id}
+                  className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border group ${
+                    extra.isAutoCharge
+                      ? "bg-amber-500/8 border-amber-500/30"
+                      : "bg-secondary/40 border-border/50"
+                  }`}
+                >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{extra.itemName}</p>
+                    <div className="flex items-center gap-1.5">
+                      {extra.isAutoCharge && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-500 text-[10px] font-semibold shrink-0">
+                          <Zap className="h-2.5 w-2.5" />
+                          Auto
+                        </span>
+                      )}
+                      <p className="text-sm font-medium text-foreground truncate">{extra.itemName}</p>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       ₹{extra.rate.toLocaleString("en-IN")} × {extra.qty}
                     </p>
@@ -121,13 +138,17 @@ function ExtrasModal({ booking, onClose }: { booking: Booking; onClose: () => vo
                     <span className="text-sm font-semibold text-foreground">
                       ₹{(extra.rate * extra.qty).toLocaleString("en-IN")}
                     </span>
-                    <button
-                      onClick={() => handleDelete(extra)}
-                      disabled={deleteExtra.isPending}
-                      className="h-6 w-6 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
+                    {/* Auto-charges: admin only. Manual charges: anyone. */}
+                    {(!extra.isAutoCharge || isAdmin) && (
+                      <button
+                        onClick={() => handleDelete(extra)}
+                        disabled={deleteExtra.isPending}
+                        className="h-6 w-6 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40"
+                        title={extra.isAutoCharge ? "Remove auto-charge (admin only)" : "Remove item"}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -422,6 +443,36 @@ export default function Dashboard() {
                         <CalendarClock className="h-3.5 w-3.5 shrink-0" />
                         <p className="truncate">{format(new Date(booking.checkInTime), "MMM d, h:mm a")}</p>
                       </div>
+                      {/* Stay hours & next auto-charge countdown */}
+                      {(() => {
+                        const stayH = booking.stayHours ?? 24
+                        const charged = booking.autoChargesPosted ?? 0
+                        const nextChargeAt = new Date(booking.checkInTime).getTime() + stayH * 3600_000 * (charged + 1)
+                        const msUntilNext = nextChargeAt - Date.now()
+                        const hoursUntilNext = Math.floor(msUntilNext / 3600_000)
+                        const minsUntilNext = Math.floor((msUntilNext % 3600_000) / 60_000)
+                        return (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-semibold">
+                              <Timer className="h-2.5 w-2.5" />
+                              {stayH}h
+                            </span>
+                            {charged > 0 && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/12 text-amber-500 text-[10px] font-semibold">
+                                <Zap className="h-2.5 w-2.5" />
+                                Day {charged} charged
+                              </span>
+                            )}
+                            {msUntilNext > 0 ? (
+                              <span className="text-[10px] text-muted-foreground">
+                                next in {hoursUntilNext > 0 ? `${hoursUntilNext}h ` : ""}{minsUntilNext}m
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">next charge due</span>
+                            )}
+                          </div>
+                        )
+                      })()}
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <IndianRupee className="h-3.5 w-3.5 shrink-0" />

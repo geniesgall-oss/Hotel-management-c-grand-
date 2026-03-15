@@ -13,4 +13,5 @@ export interface CreateBookingRequest {
   roomAmount: number;
   amountPaid: number;
   paymentMethod: string;
+  stayHours?: number;
 }

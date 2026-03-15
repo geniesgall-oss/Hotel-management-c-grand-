@@ -67,9 +67,16 @@ export async function initDb(): Promise<void> {
       item_name TEXT NOT NULL,
       rate REAL NOT NULL DEFAULT 0,
       qty INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT ''
+      created_at TEXT NOT NULL DEFAULT '',
+      is_auto_charge BOOLEAN NOT NULL DEFAULT FALSE
     )
   `);
+
+  // Add stay_hours / auto_charges_posted to bookings (migration for existing tables)
+  await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS stay_hours INTEGER NOT NULL DEFAULT 24`);
+  await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS auto_charges_posted INTEGER NOT NULL DEFAULT 0`);
+  // Add is_auto_charge to room_extras (migration for existing tables)
+  await pool.query(`ALTER TABLE room_extras ADD COLUMN IF NOT EXISTS is_auto_charge BOOLEAN NOT NULL DEFAULT FALSE`);
 
   // Remove legacy default accounts if they exist
   await pool.query("DELETE FROM users WHERE username = 'admin'");
