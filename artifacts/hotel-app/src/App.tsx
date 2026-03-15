@@ -9,6 +9,7 @@ import CheckIn from "./pages/CheckIn";
 import CheckOut from "./pages/CheckOut";
 import History from "./pages/History";
 import Users from "./pages/Users";
+import MonthlyReport from "./pages/MonthlyReport";
 import NotFound from "./pages/not-found";
 
 // Global fetch interceptor — properly handles Headers objects
@@ -72,6 +73,7 @@ function Router() {
       <Route path="/checkin" component={() => <ProtectedRoute component={CheckIn} />} />
       <Route path="/checkout" component={() => <ProtectedRoute component={CheckOut} />} />
       <Route path="/history" component={() => <ProtectedRoute component={History} />} />
+      <Route path="/reports" component={() => <ProtectedRoute component={MonthlyReport} />} />
       <Route path="/users" component={() => <ProtectedRoute component={Users} adminOnly />} />
       <Route component={NotFound} />
     </Switch>

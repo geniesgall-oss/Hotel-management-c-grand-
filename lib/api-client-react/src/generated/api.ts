@@ -21,13 +21,16 @@ import type {
   CheckoutRequest,
   CreateBookingRequest,
   ErrorResponse,
+  GetMonthlyReportParams,
   HealthStatus,
   HistoryRecord,
   LoginRequest,
   LoginResponse,
+  MonthlyReport,
   Room,
   SuccessResponse,
   UpdateBookingRequest,
+  UpdateHistoryRequest,
   User,
 } from "./api.schemas";
 
@@ -911,6 +914,87 @@ export function useGetHistory<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export const getUpdateHistoryUrl = (id: number) => {
+  return `/api/history/${id}`;
+};
+
+export const updateHistory = async (
+  id: number,
+  updateHistoryRequest: UpdateHistoryRequest,
+  options?: RequestInit,
+): Promise<HistoryRecord> => {
+  return customFetch<HistoryRecord>(getUpdateHistoryUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateHistoryRequest),
+  });
+};
+
+export const getUpdateHistoryMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateHistory>>,
+    TError,
+    { id: number; data: BodyType<UpdateHistoryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateHistory>>,
+  TError,
+  { id: number; data: BodyType<UpdateHistoryRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateHistory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateHistory>>,
+    { id: number; data: BodyType<UpdateHistoryRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateHistory(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateHistoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateHistory>>
+>;
+export type UpdateHistoryMutationBody = BodyType<UpdateHistoryRequest>;
+export type UpdateHistoryMutationError = ErrorType<ErrorResponse>;
+
+export const useUpdateHistory = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateHistory>>,
+    TError,
+    { id: number; data: BodyType<UpdateHistoryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateHistory>>,
+  TError,
+  { id: number; data: BodyType<UpdateHistoryRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateHistoryMutationOptions(options));
+};
+
 export const getDeleteHistoryUrl = (id: number) => {
   return `/api/history/${id}`;
 };
@@ -988,3 +1072,93 @@ export const useDeleteHistory = <
 > => {
   return useMutation(getDeleteHistoryMutationOptions(options));
 };
+
+export const getGetMonthlyReportUrl = (params: GetMonthlyReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/monthly?${stringifiedParams}`
+    : `/api/reports/monthly`;
+};
+
+export const getMonthlyReport = async (
+  params: GetMonthlyReportParams,
+  options?: RequestInit,
+): Promise<MonthlyReport> => {
+  return customFetch<MonthlyReport>(getGetMonthlyReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMonthlyReportQueryKey = (
+  params?: GetMonthlyReportParams,
+) => {
+  return [`/api/reports/monthly`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMonthlyReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMonthlyReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMonthlyReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMonthlyReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMonthlyReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMonthlyReport>>
+  > = ({ signal }) => getMonthlyReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMonthlyReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMonthlyReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMonthlyReport>>
+>;
+export type GetMonthlyReportQueryError = ErrorType<unknown>;
+
+export function useGetMonthlyReport<
+  TData = Awaited<ReturnType<typeof getMonthlyReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMonthlyReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMonthlyReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMonthlyReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

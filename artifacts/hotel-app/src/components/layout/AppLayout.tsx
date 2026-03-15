@@ -2,7 +2,7 @@ import { ReactNode } from "react"
 import { Link, useLocation } from "wouter"
 import { useAuth } from "@/hooks/use-auth"
 import { motion } from "framer-motion"
-import { LayoutDashboard, LogIn, LogOut, History, BedDouble, UserCheck, Users } from "lucide-react"
+import { LayoutDashboard, LogIn, LogOut, History, BedDouble, UserCheck, Users, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -11,11 +11,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAdmin = user?.role === "admin"
 
   const navItems = [
-    { href: "/", label: "Overview", icon: LayoutDashboard, adminOnly: false },
-    { href: "/checkin", label: "Check-In", icon: LogIn, adminOnly: false },
-    { href: "/checkout", label: "Check-Out", icon: LogOut, adminOnly: false },
-    { href: "/history", label: "History", icon: History, adminOnly: false },
-    { href: "/users", label: "User Management", icon: Users, adminOnly: true },
+    { href: "/",        label: "Overview",        icon: LayoutDashboard, adminOnly: false },
+    { href: "/checkin", label: "Check-In",         icon: LogIn,           adminOnly: false },
+    { href: "/checkout",label: "Check-Out",        icon: LogOut,          adminOnly: false },
+    { href: "/history", label: "History",           icon: History,         adminOnly: false },
+    { href: "/reports", label: "Monthly Report",   icon: BarChart3,       adminOnly: false },
+    { href: "/users",   label: "User Management",  icon: Users,           adminOnly: true  },
   ]
 
   const visibleItems = navItems.filter(item => !item.adminOnly || isAdmin)

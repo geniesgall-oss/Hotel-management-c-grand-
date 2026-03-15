@@ -5,6 +5,7 @@ import roomsRouter from "./rooms.js";
 import bookingsRouter from "./bookings.js";
 import historyRouter from "./history.js";
 import usersRouter from "./users.js";
+import reportsRouter from "./reports.js";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(roomsRouter);
 router.use(bookingsRouter);
 router.use(historyRouter);
 router.use(usersRouter);
+router.use(reportsRouter);
 
 export default router;

@@ -92,6 +92,15 @@ export interface CheckoutRequest {
   dueAmountPaid: number;
 }
 
+export interface UpdateHistoryRequest {
+  guestName: string;
+  phone: string;
+  roomAmount: number;
+  amountPaidAtCheckin: number;
+  checkInTime: string;
+  checkOutTime: string;
+}
+
 export interface HistoryRecord {
   id: number;
   guestName: string;
@@ -108,3 +117,33 @@ export interface HistoryRecord {
   checkedInBy: string;
   checkedOutBy: string;
 }
+
+export interface MonthlyReportRow {
+  id: number;
+  guestName: string;
+  phone: string;
+  roomNumber: string;
+  checkInTime: string;
+  checkOutTime: string;
+  roomAmount: number;
+  totalPaid: number;
+  paymentMethodAtCheckin: string;
+  duePaymentMethodAtCheckout: string;
+}
+
+export interface MonthlyReport {
+  year: number;
+  month: number;
+  totalBookings: number;
+  totalRevenue: number;
+  cashTotal: number;
+  phonePeTotal: number;
+  gPayTotal: number;
+  cardTotal: number;
+  bookings: MonthlyReportRow[];
+}
+
+export type GetMonthlyReportParams = {
+  year: number;
+  month: number;
+};

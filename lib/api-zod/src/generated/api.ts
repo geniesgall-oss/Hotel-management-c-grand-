@@ -169,6 +169,36 @@ export const GetHistoryResponseItem = zod.object({
 });
 export const GetHistoryResponse = zod.array(GetHistoryResponseItem);
 
+export const UpdateHistoryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateHistoryBody = zod.object({
+  guestName: zod.string(),
+  phone: zod.string(),
+  roomAmount: zod.number(),
+  amountPaidAtCheckin: zod.number(),
+  checkInTime: zod.string(),
+  checkOutTime: zod.string(),
+});
+
+export const UpdateHistoryResponse = zod.object({
+  id: zod.number(),
+  guestName: zod.string(),
+  phone: zod.string(),
+  roomNumber: zod.string(),
+  checkInTime: zod.string(),
+  checkOutTime: zod.string(),
+  roomAmount: zod.number(),
+  amountPaidAtCheckin: zod.number(),
+  paymentMethodAtCheckin: zod.string(),
+  dueAmountPaidAtCheckout: zod.number(),
+  duePaymentMethodAtCheckout: zod.string(),
+  totalPaid: zod.number(),
+  checkedInBy: zod.string(),
+  checkedOutBy: zod.string(),
+});
+
 export const DeleteHistoryParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -176,4 +206,34 @@ export const DeleteHistoryParams = zod.object({
 export const DeleteHistoryResponse = zod.object({
   success: zod.boolean(),
   message: zod.string().optional(),
+});
+
+export const GetMonthlyReportQueryParams = zod.object({
+  year: zod.coerce.number(),
+  month: zod.coerce.number(),
+});
+
+export const GetMonthlyReportResponse = zod.object({
+  year: zod.number(),
+  month: zod.number(),
+  totalBookings: zod.number(),
+  totalRevenue: zod.number(),
+  cashTotal: zod.number(),
+  phonePeTotal: zod.number(),
+  gPayTotal: zod.number(),
+  cardTotal: zod.number(),
+  bookings: zod.array(
+    zod.object({
+      id: zod.number(),
+      guestName: zod.string(),
+      phone: zod.string(),
+      roomNumber: zod.string(),
+      checkInTime: zod.string(),
+      checkOutTime: zod.string(),
+      roomAmount: zod.number(),
+      totalPaid: zod.number(),
+      paymentMethodAtCheckin: zod.string(),
+      duePaymentMethodAtCheckout: zod.string(),
+    }),
+  ),
 });

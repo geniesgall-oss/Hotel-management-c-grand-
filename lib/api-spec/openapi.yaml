@@ -11,6 +11,7 @@ tags:
   - name: rooms
   - name: bookings
   - name: history
+  - name: reports
 paths:
   /healthz:
     get:
@@ -249,6 +250,34 @@ paths:
                   $ref: "#/components/schemas/HistoryRecord"
 
   /history/{id}:
+    put:
+      operationId: updateHistory
+      tags: [history]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHistoryRequest"
+      responses:
+        "200":
+          description: History record updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryRecord"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteHistory
       tags: [history]
@@ -271,6 +300,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /reports/monthly:
+    get:
+      operationId: getMonthlyReport
+      tags: [reports]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monthly occupancy and revenue report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlyReport"
 
 components:
   schemas:
@@ -411,6 +463,23 @@ components:
           type: number
       required: [duePaymentMethod, dueAmountPaid]
 
+    UpdateHistoryRequest:
+      type: object
+      properties:
+        guestName:
+          type: string
+        phone:
+          type: string
+        roomAmount:
+          type: number
+        amountPaidAtCheckin:
+          type: number
+        checkInTime:
+          type: string
+        checkOutTime:
+          type: string
+      required: [guestName, phone, roomAmount, amountPaidAtCheckin, checkInTime, checkOutTime]
+
     HistoryRecord:
       type: object
       properties:
@@ -443,3 +512,53 @@ components:
         checkedOutBy:
           type: string
       required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, amountPaidAtCheckin, paymentMethodAtCheckin, dueAmountPaidAtCheckout, duePaymentMethodAtCheckout, totalPaid, checkedInBy, checkedOutBy]
+
+    MonthlyReportRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        guestName:
+          type: string
+        phone:
+          type: string
+        roomNumber:
+          type: string
+        checkInTime:
+          type: string
+        checkOutTime:
+          type: string
+        roomAmount:
+          type: number
+        totalPaid:
+          type: number
+        paymentMethodAtCheckin:
+          type: string
+        duePaymentMethodAtCheckout:
+          type: string
+      required: [id, guestName, phone, roomNumber, checkInTime, checkOutTime, roomAmount, totalPaid, paymentMethodAtCheckin, duePaymentMethodAtCheckout]
+
+    MonthlyReport:
+      type: object
+      properties:
+        year:
+          type: integer
+        month:
+          type: integer
+        totalBookings:
+          type: integer
+        totalRevenue:
+          type: number
+        cashTotal:
+          type: number
+        phonePeTotal:
+          type: number
+        gPayTotal:
+          type: number
+        cardTotal:
+          type: number
+        bookings:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyReportRow"
+      required: [year, month, totalBookings, totalRevenue, cashTotal, phonePeTotal, gPayTotal, cardTotal, bookings]

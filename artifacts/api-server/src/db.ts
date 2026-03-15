@@ -1,9 +1,19 @@
 import Database from "better-sqlite3";
 import path from "path";
-import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, "..", "hotel.db");
+// Robust DB path resolution that works in both ESM dev (tsx) and CJS production bundle.
+// import.meta.url is undefined when bundled to CJS by esbuild, so we use process.argv[1]
+// which points to the running file in both modes.
+function resolveDbPath(): string {
+  if (process.env.DB_PATH) return process.env.DB_PATH;
+  // process.argv[1] = path to running script, e.g.:
+  //   dev:  .../artifacts/api-server/src/index.ts  → parent = src/ → ../hotel.db = api-server/hotel.db
+  //   prod: .../artifacts/api-server/dist/index.cjs → parent = dist/ → ../hotel.db = api-server/hotel.db
+  const scriptDir = path.dirname(path.resolve(process.argv[1] ?? ""));
+  return path.join(scriptDir, "..", "hotel.db");
+}
+
+const DB_PATH = resolveDbPath();
 
 const db = new Database(DB_PATH);
 
