@@ -1,4 +1,5 @@
 import app from "./app";
+import { purgeOldHistory } from "./db.js";
 
 const rawPort = process.env["PORT"];
 
@@ -16,4 +17,8 @@ if (Number.isNaN(port) || port <= 0) {
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
+
+  // Purge history records older than 2 months on startup, then every 24 hours
+  purgeOldHistory();
+  setInterval(purgeOldHistory, 24 * 60 * 60 * 1000);
 });

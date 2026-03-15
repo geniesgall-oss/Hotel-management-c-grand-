@@ -111,4 +111,18 @@ if (!anyAdmin) {
   );
 }
 
+/**
+ * Deletes history records whose check_out_time is older than 2 calendar months.
+ * SQLite's datetime arithmetic: datetime('now', '-2 months') is exact.
+ */
+export function purgeOldHistory(): number {
+  const result = db
+    .prepare(`DELETE FROM history WHERE check_out_time < datetime('now', '-2 months')`)
+    .run();
+  if (result.changes > 0) {
+    console.log(`[purge] Deleted ${result.changes} history record(s) older than 2 months`);
+  }
+  return result.changes;
+}
+
 export default db;
