@@ -1,13 +1,13 @@
 import { useState } from "react"
 import { useGetRooms, useUpdateBooking, useDeleteBooking, useMarkRoomClean } from "@workspace/api-client-react"
-import type { Booking } from "@workspace/api-client-react/src/generated/api.schemas"
+import type { Booking } from "@workspace/api-client-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, type Variants, type Easing } from "framer-motion"
 import {
   DoorOpen, User, Phone, CalendarClock, IndianRupee, AlertCircle,
   Pencil, Trash2, X, Check, CreditCard, Sparkles, Wind,
@@ -16,11 +16,11 @@ import { format } from "date-fns"
 
 const PAYMENT_METHODS = ["Cash", "PhonePe", "GPay", "Card"] as const
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 20, scale: 0.97 },
   visible: (i: number) => ({
     opacity: 1, y: 0, scale: 1,
-    transition: { delay: i * 0.04, duration: 0.35, ease: "easeOut" },
+    transition: { delay: i * 0.04, duration: 0.35, ease: "easeOut" as Easing },
   }),
 }
 

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useGetMonthlyReport } from "@workspace/api-client-react"
+import { useGetMonthlyReport, getGetMonthlyReportQueryKey } from "@workspace/api-client-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { motion } from "framer-motion"
@@ -61,7 +61,7 @@ export default function MonthlyReport() {
 
   const { data: report, isLoading } = useGetMonthlyReport(
     { year, month },
-    { query: { enabled: true } }
+    { query: { queryKey: getGetMonthlyReportQueryKey({ year, month }), enabled: true } }
   )
 
   const prev = () => {

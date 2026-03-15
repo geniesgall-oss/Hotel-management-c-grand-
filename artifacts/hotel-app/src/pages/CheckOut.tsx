@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useGetBookings, useCheckoutBooking } from "@workspace/api-client-react"
-import type { Booking } from "@workspace/api-client-react/src/generated/api.schemas"
+import type { Booking } from "@workspace/api-client-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useQueryClient } from "@tanstack/react-query"

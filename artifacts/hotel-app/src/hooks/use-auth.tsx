@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react"
-import { useGetMe, useLogin, useLogout } from "@workspace/api-client-react"
-import type { LoginRequest, User } from "@workspace/api-client-react/src/generated/api.schemas"
+import { useGetMe, useLogin, useLogout, getGetMeQueryKey } from "@workspace/api-client-react"
+import type { LoginRequest, User } from "@workspace/api-client-react"
 import { useLocation } from "wouter"
 import { toast } from "sonner"
 
@@ -20,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const { data: user, isLoading: isUserLoading, refetch, isError } = useGetMe({
     query: {
+      queryKey: getGetMeQueryKey(),
       enabled: !!token,
       retry: false,
     }

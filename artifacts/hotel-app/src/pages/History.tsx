@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useGetHistory, useDeleteHistory, useUpdateHistory } from "@workspace/api-client-react"
-import type { HistoryRecord } from "@workspace/api-client-react/src/generated/api.schemas"
+import type { HistoryRecord } from "@workspace/api-client-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
