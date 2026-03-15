@@ -1,15 +1,36 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
-  <title>Hotel C Grand Dashboard</title>
-</head>
-<body>
+<title>Hotel C Grand Dashboard</title>
+</head><body><h1>Hotel C Grand Rooms</h1><div id="rooms"></div><form onsubmit="login(event)">
+  <input name="username" placeholder="Username">
+  <input name="password" type="password" placeholder="Password">
+  <button type="submit">Login</button>
+</form><script src="app.js"></script><script>
+const API = "https://hotel-management-c-grand-api-server-one.vercel.app";
 
-<h1>Hotel C Grand Rooms</h1>
+async function login(e) {
+  e.preventDefault();
 
-<div id="rooms"></div>
+  const username = document.querySelector("input[name='username']").value;
+  const password = document.querySelector("input[name='password']").value;
 
-<script src="app.js"></script>
+  const res = await fetch(`${API}/api/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username, password })
+  });
 
-</body>
+  const data = await res.json();
+
+  if (data.success) {
+  alert("Login success");
+  window.location.href = "/";
+  }
+  } else {
+    alert("Invalid login");
+  }
+}
+</script></body>
 </html>
