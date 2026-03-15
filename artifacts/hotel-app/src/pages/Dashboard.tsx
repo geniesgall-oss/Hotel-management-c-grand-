@@ -22,10 +22,10 @@ import { format } from "date-fns"
 const PAYMENT_METHODS = ["Cash", "PhonePe", "GPay", "Card"] as const
 
 const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  hidden: { opacity: 0, y: 10 },
   visible: (i: number) => ({
-    opacity: 1, y: 0, scale: 1,
-    transition: { delay: i * 0.04, duration: 0.35, ease: "easeOut" as const },
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.03, duration: 0.22, ease: "easeOut" as const },
   }),
 }
 
@@ -313,7 +313,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
+        initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
         className="flex flex-col md:flex-row md:items-end justify-between gap-4"
       >
         <div>

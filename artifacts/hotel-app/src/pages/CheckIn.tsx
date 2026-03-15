@@ -118,12 +118,12 @@ export default function CheckIn() {
         )}
       </AnimatePresence>
 
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
         <h1 className="text-3xl font-display font-bold text-foreground">New Check-In</h1>
         <p className="text-muted-foreground mt-1">Register a new guest and record their payment.</p>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }}>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, delay: 0.06 }}>
         <Card className="border border-border/70 shadow-2xl shadow-black/30">
           <CardHeader className="bg-secondary/40 pb-6 border-b border-border/60">
             <CardTitle className="flex items-center gap-2 text-foreground">

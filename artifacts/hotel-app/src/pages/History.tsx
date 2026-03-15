@@ -47,9 +47,9 @@ function toInputDatetime(iso: string) {
 }
 
 const modalVariants = {
-  hidden:  { scale: 0.93, opacity: 0, y: 24 },
+  hidden:  { scale: 0.97, opacity: 0, y: 10 },
   visible: { scale: 1,    opacity: 1, y: 0 },
-  exit:    { scale: 0.96, opacity: 0, y: 12 },
+  exit:    { scale: 0.98, opacity: 0, y: 6  },
 }
 const modalTransition = { type: "spring" as const, stiffness: 300, damping: 26 }
 
@@ -135,9 +135,9 @@ export default function History() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
       >
         <div>
@@ -152,7 +152,7 @@ export default function History() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ delay: 0.06, duration: 0.24, ease: "easeOut" }}
       >
         <Card className="overflow-hidden shadow-lg border-border/50 bg-card">
           <div className="overflow-x-auto">
@@ -181,9 +181,9 @@ export default function History() {
                 ) : historyRecords.map((record, i) => (
                   <motion.tr
                     key={record.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04, duration: 0.3, ease: "easeOut" }}
+                    transition={{ delay: Math.min(i * 0.03, 0.25), duration: 0.2, ease: "easeOut" }}
                     className="hover:bg-primary/5 transition-colors cursor-pointer group"
                     onClick={() => setDetailRecord(record)}
                   >

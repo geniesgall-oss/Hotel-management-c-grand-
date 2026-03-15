@@ -13,7 +13,7 @@ const MONTHS = ["January","February","March","April","May","June","July","August
 
 function StatCard({ label, value, icon: Icon, color, delay = 0 }: { label: string; value: string; icon: any; color: string; delay?: number }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.35 }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.2 }}>
       <Card className="border border-border/60 shadow-lg bg-card overflow-hidden relative">
         <div className={`absolute top-0 right-0 w-24 h-24 blur-3xl opacity-10 rounded-full ${color}`} />
         <CardContent className="p-5 flex items-center gap-4">
@@ -77,7 +77,7 @@ export default function MonthlyReport() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
+      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Monthly Report</h1>

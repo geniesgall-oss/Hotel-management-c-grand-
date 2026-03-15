@@ -16,12 +16,10 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>
 
-const EASE = [0.22, 1, 0.36, 1] as const
-
 const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 18 },
+  initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45, ease: EASE, delay },
+  transition: { duration: 0.22, ease: "easeOut" as const, delay },
 })
 
 export default function Login() {
@@ -45,9 +43,9 @@ export default function Login() {
     <div className="min-h-screen flex">
       {/* Visual left panel */}
       <motion.div
-        initial={{ opacity: 0, x: -40 }}
+        initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         className="hidden lg:flex flex-1 relative bg-primary overflow-hidden items-center justify-center"
       >
         <div className="absolute inset-0 z-0">
@@ -60,23 +58,17 @@ export default function Login() {
         </div>
         <div className="relative z-10 text-primary-foreground max-w-lg p-12">
           <motion.div
-            initial={{ scale: 0.7, opacity: 0 }}
+            initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.5, type: "spring", stiffness: 200, damping: 20 }}
+            transition={{ delay: 0.1, duration: 0.28, type: "spring", stiffness: 280, damping: 22 }}
             className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center mb-8 shadow-2xl"
           >
             <BedDouble className="h-8 w-8 text-white" />
           </motion.div>
-          <motion.h1
-            {...fadeUp(0.4)}
-            className="text-5xl font-display font-bold mb-6 leading-tight"
-          >
+          <motion.h1 {...fadeUp(0.12)} className="text-5xl font-display font-bold mb-6 leading-tight">
             Elevate Your Hospitality Management.
           </motion.h1>
-          <motion.p
-            {...fadeUp(0.52)}
-            className="text-xl text-primary-foreground/80 leading-relaxed font-light"
-          >
+          <motion.p {...fadeUp(0.18)} className="text-xl text-primary-foreground/80 leading-relaxed font-light">
             Streamlined check-ins, real-time room status, and comprehensive history tracking.
           </motion.p>
         </div>
@@ -84,17 +76,17 @@ export default function Login() {
 
       {/* Login Form */}
       <motion.div
-        initial={{ opacity: 0, x: 30 }}
+        initial={{ opacity: 0, x: 16 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
         className="flex-1 flex flex-col justify-center items-center p-8 bg-background"
       >
         <div className="w-full max-w-md space-y-8">
-          <motion.div {...fadeUp(0.1)} className="text-center">
+          <motion.div {...fadeUp(0.06)} className="text-center">
             <motion.div
-              initial={{ scale: 0.6, opacity: 0 }}
+              initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 260, damping: 20 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 320, damping: 22 }}
               className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-6 lg:hidden shadow-lg"
             >
               <BedDouble className="h-6 w-6 text-primary-foreground" />
@@ -104,13 +96,13 @@ export default function Login() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.22, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: 0.1, duration: 0.25, ease: "easeOut" }}
             className="bg-card p-8 rounded-2xl shadow-xl border border-border/50"
           >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <motion.div {...fadeUp(0.3)} className="space-y-2">
+              <motion.div {...fadeUp(0.14)} className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
@@ -120,17 +112,13 @@ export default function Login() {
                   className={errors.username ? "border-destructive" : ""}
                 />
                 {errors.username && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-sm text-destructive"
-                  >
+                  <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-destructive">
                     {errors.username.message}
                   </motion.p>
                 )}
               </motion.div>
 
-              <motion.div {...fadeUp(0.38)} className="space-y-2">
+              <motion.div {...fadeUp(0.18)} className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
@@ -141,17 +129,13 @@ export default function Login() {
                   className={errors.password ? "border-destructive" : ""}
                 />
                 {errors.password && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-sm text-destructive"
-                  >
+                  <motion.p initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-destructive">
                     {errors.password.message}
                   </motion.p>
                 )}
               </motion.div>
 
-              <motion.div {...fadeUp(0.46)}>
+              <motion.div {...fadeUp(0.22)}>
                 <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
                   Sign In to Dashboard
                 </Button>

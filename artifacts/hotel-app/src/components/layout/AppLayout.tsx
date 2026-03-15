@@ -11,23 +11,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAdmin = user?.role === "admin"
 
   const navItems = [
-    { href: "/",        label: "Overview",        icon: LayoutDashboard, adminOnly: false },
-    { href: "/checkin", label: "Check-In",         icon: LogIn,           adminOnly: false },
-    { href: "/checkout",label: "Check-Out",        icon: LogOut,          adminOnly: false },
-    { href: "/history", label: "History",           icon: History,         adminOnly: false },
-    { href: "/reports", label: "Monthly Report",   icon: BarChart3,       adminOnly: false },
-    { href: "/users",   label: "User Management",  icon: Users,           adminOnly: true  },
+    { href: "/",         label: "Overview",       icon: LayoutDashboard, adminOnly: false },
+    { href: "/checkin",  label: "Check-In",        icon: LogIn,           adminOnly: false },
+    { href: "/checkout", label: "Check-Out",       icon: LogOut,          adminOnly: false },
+    { href: "/history",  label: "History",          icon: History,         adminOnly: false },
+    { href: "/reports",  label: "Monthly Report",  icon: BarChart3,       adminOnly: false },
+    { href: "/users",    label: "User Management", icon: Users,           adminOnly: true  },
   ]
 
   const visibleItems = navItems.filter(item => !item.adminOnly || isAdmin)
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      {/* Sidebar */}
+      {/* Sidebar — slides in once on mount */}
       <motion.aside
-        initial={{ x: -20, opacity: 0 }}
+        initial={{ x: -12, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
         className="w-full md:w-64 bg-card border-r border-border/50 flex flex-col shrink-0 sticky top-0 md:h-screen z-20"
       >
         {/* Brand */}
@@ -49,14 +49,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
             return (
               <motion.div
                 key={item.href}
-                initial={{ opacity: 0, x: -12 }}
+                initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 + 0.1, duration: 0.3 }}
+                transition={{ delay: i * 0.03 + 0.06, duration: 0.2 }}
                 className="shrink-0"
               >
                 <Link href={item.href}>
                   <div className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 cursor-pointer relative",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all duration-150 cursor-pointer relative",
                     isActive
                       ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -66,7 +66,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       <motion.div
                         layoutId="activeNav"
                         className="absolute inset-0 rounded-xl bg-primary -z-10"
-                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 36 }}
                       />
                     )}
                     <Icon size={18} className="shrink-0" />
@@ -86,9 +86,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {/* User footer */}
         {user && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.35 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.18, duration: 0.2 }}
             className="p-4 md:p-5 mt-auto border-t border-border/50"
           >
             <div className="flex items-center gap-3 mb-3 px-1">
@@ -114,13 +114,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
         )}
       </motion.aside>
 
-      {/* Main Content */}
+      {/* Main Content — simple opacity crossfade on route change, no y shift */}
       <main className="flex-1 overflow-y-auto">
         <motion.div
           key={location}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
           className="p-5 md:p-9 max-w-7xl mx-auto"
         >
           {children}

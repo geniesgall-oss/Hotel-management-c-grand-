@@ -109,10 +109,10 @@ function CheckoutModal({
           onClick={onClose}
         />
         <motion.div
-          initial={{ scale: 0.93, opacity: 0, y: 24 }}
+          initial={{ scale: 0.97, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 12 }}
-          transition={{ type: "spring", stiffness: 300, damping: 26 }}
+          exit={{ scale: 0.98, opacity: 0, y: 6 }}
+          transition={{ type: "spring", stiffness: 420, damping: 32 }}
           className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md p-6 space-y-5 max-h-[92vh] overflow-y-auto"
         >
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
@@ -200,9 +200,9 @@ function CheckoutModal({
                   {PAYMENT_METHODS.map((method, i) => (
                     <motion.div
                       key={method}
-                      initial={{ opacity: 0, x: -12 }}
+                      initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 + i * 0.06, type: "spring", stiffness: 280, damping: 24 }}
+                      transition={{ delay: 0.1 + i * 0.04, type: "spring", stiffness: 380, damping: 28 }}
                       className="flex items-center gap-2"
                     >
                       <div className={`flex items-center gap-2 flex-1 px-3 py-2.5 rounded-xl border transition-colors ${
@@ -329,7 +329,7 @@ export default function CheckOut() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, ease: EASE }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
         <h1 className="text-3xl font-display font-bold text-foreground">Departures</h1>
         <p className="text-muted-foreground mt-1">Manage guest check-outs and clear rooms.</p>
@@ -355,8 +355,8 @@ export default function CheckOut() {
               key={booking.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07, duration: 0.38, ease: EASE }}
-              whileHover={{ y: -2 }}
+              transition={{ delay: i * 0.04, duration: 0.22, ease: "easeOut" }}
+              whileHover={{ y: -1 }}
             >
               <Card className="border border-border/70 hover:border-primary/40 transition-colors bg-card">
                 <CardContent className="p-0">

@@ -42,9 +42,9 @@ async function apiFetch(path: string, opts?: RequestInit) {
 const EASE = [0.22, 1, 0.36, 1] as const
 
 const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: EASE, delay },
+  transition: { duration: 0.22, ease: "easeOut" as const, delay },
 })
 
 export default function Users() {
@@ -243,10 +243,10 @@ export default function Users() {
                     {users.map((u, i) => (
                       <motion.div
                         key={u.id}
-                        initial={{ opacity: 0, x: 20 }}
+                        initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20, height: 0 }}
-                        transition={{ delay: i * 0.06, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                        exit={{ opacity: 0, x: 10, height: 0 }}
+                        transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.2, ease: "easeOut" }}
                         className="flex items-center gap-3 px-5 py-3.5"
                       >
                         <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
@@ -302,10 +302,10 @@ export default function Users() {
               onClick={() => setToDelete(null)}
             />
             <motion.div
-              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              initial={{ scale: 0.97, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: "spring", stiffness: 300, damping: 26 }}
+              exit={{ scale: 0.98, opacity: 0, y: 6 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
               className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-sm p-6 space-y-4"
             >
               <motion.h2
